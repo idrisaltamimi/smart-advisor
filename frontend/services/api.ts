@@ -39,9 +39,13 @@ export function getApiUrl(): string {
 
 export const API_BASE_URL = getApiUrl();
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
     ...options
   })
 
@@ -61,6 +65,13 @@ export interface User {
   id: string
   email: string
   full_name: string
+  major_id: string | null
+}
+
+export interface Major {
+  id: string
+  name: string
+  total_credits_required: number
 }
 
 export interface AuthResponse {
@@ -85,4 +96,12 @@ export function apiLogin(email: string, password: string): Promise<AuthResponse>
     method: "POST",
     body: JSON.stringify({ email, password })
   })
+}
+
+export function apiGetMajors(): Promise<Major[]> {
+  return request<Major[]>("/majors")
+}
+
+export function apiSetMajor(major_id: string, token: string): Promise<User> {
+  return request<User>("/users/me/major", { method: "POST", body: JSON.stringify({ major_id }) }, token)
 }

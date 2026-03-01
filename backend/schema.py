@@ -14,6 +14,7 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: str
+    major_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -142,6 +143,10 @@ class PrerequisiteOut(PrerequisiteCreate):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
+class SetMajorRequest(BaseModel):
+    major_id: str
+
 
 class LoginRequest(BaseModel):
     email: str

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-import { apiLogin, apiRegister, User } from '@/services/api';
+import { apiLogin, apiRegister, apiSetMajor, User } from '@/services/api';
 
 interface AuthState {
   token: string | null;
@@ -10,6 +10,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (full_name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  setMajor: (major_id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -53,8 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
   }
 
+  async function setMajor(major_id: string) {
+    if (!token) throw new Error('Not authenticated');
+    const updatedUser = await apiSetMajor(major_id, token);
+    setUser(updatedUser);
+    await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+  }
+
   return (
-    <AuthContext.Provider value={{ token, user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ token, user, isLoading, signIn, signUp, signOut, setMajor }}>
       {children}
     </AuthContext.Provider>
   );

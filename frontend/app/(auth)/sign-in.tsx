@@ -40,12 +40,24 @@ export default function SignIn() {
     }
   }
 
+  function fillDevCredentials() {
+    setEmail('i@g.com');
+    setPassword('12345678');
+  }
+
   const inputStyle = [styles.input, { borderColor: colors.icon, color: colors.text }];
 
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
-        <ThemedText type="title" style={styles.title}>Sign In</ThemedText>
+        <View style={styles.titleRow}>
+          <ThemedText type="title" style={styles.title}>Sign In</ThemedText>
+          {__DEV__ && (
+            <TouchableOpacity onPress={fillDevCredentials} style={[styles.devBadge, { backgroundColor: colors.tint }]}>
+              <ThemedText style={styles.devBadgeText}>DEV</ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <TextInput
           style={inputStyle}
@@ -88,7 +100,14 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, gap: 16 },
-  title: { marginBottom: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  title: { marginBottom: 0 },
+  devBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  devBadgeText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   input: {
     borderWidth: 1,
     borderRadius: 8,

@@ -12,7 +12,7 @@ export const unstable_settings = {
 };
 
 function RootNavigator() {
-  const { token, isLoading } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -20,13 +20,16 @@ function RootNavigator() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inSelectMajor = segments[0] === '(auth)' && segments[1] === 'select-major';
 
-    if (!token && !inAuthGroup) {
-      router.replace('/(auth)/sign-in');
-    } else if (token && inAuthGroup) {
+    if (!token) {
+      if (!inAuthGroup) router.replace('/(auth)/sign-in');
+    } else if (!user?.major_id) {
+      if (!inSelectMajor) router.replace('/(auth)/select-major');
+    } else if (inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [token, isLoading, segments]);
+  }, [token, user, isLoading, segments]);
 
   return (
     <Stack>

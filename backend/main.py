@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from backend.database import engine, Base, get_db
 from backend import models
 from backend.auth import hash_password, verify_password, create_access_token, get_current_user
-from backend.schema import UserCreate, UserOut, LoginRequest, AuthResponse
+from backend.schema import UserCreate, UserOut, LoginRequest, AuthResponse, MajorOut, SetMajorRequest
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,6 +17,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def user_to_out(user: models.User) -> UserOut:
+    return UserOut(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        major_id=user.student.major_id if user.student else None,
+    )
 
 
 @app.get("/")
@@ -39,7 +48,7 @@ def register(body: UserCreate, db: Session = Depends(get_db)):
     db.refresh(user)
 
     token = create_access_token({"sub": user.id})
-    return AuthResponse(access_token=token, user=UserOut.model_validate(user))
+    return AuthResponse(access_token=token, user=user_to_out(user))
 
 
 @app.post("/auth/login", response_model=AuthResponse)
@@ -49,9 +58,35 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     token = create_access_token({"sub": user.id})
-    return AuthResponse(access_token=token, user=UserOut.model_validate(user))
+    return AuthResponse(access_token=token, user=user_to_out(user))
 
 
 @app.get("/users/me", response_model=UserOut)
 def get_me(current_user: models.User = Depends(get_current_user)):
-    return current_user
+    return user_to_out(current_user)
+
+
+@app.get("/majors", response_model=list[MajorOut])
+def list_majors(db: Session = Depends(get_db)):
+    return db.query(models.Major).all()
+
+
+@app.post("/users/me/major", response_model=UserOut)
+def set_major(
+    body: SetMajorRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    major = db.query(models.Major).filter(models.Major.id == body.major_id).first()
+    if not major:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Major not found")
+
+    if current_user.student:
+        current_user.student.major_id = body.major_id
+    else:
+        student = models.Student(user_id=current_user.id, major_id=body.major_id)
+        db.add(student)
+
+    db.commit()
+    db.refresh(current_user)
+    return user_to_out(current_user)
