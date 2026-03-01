@@ -141,6 +141,18 @@ class PrerequisiteOut(PrerequisiteCreate):
         from_attributes = True
 
 
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 # ── CourseFeedback ────────────────────────────────────────────────────────────
 
 class CourseFeedbackBase(BaseModel):
