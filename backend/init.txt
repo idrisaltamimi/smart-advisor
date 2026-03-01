@@ -1,0 +1,15 @@
+# On macOS/Linux
+python3 -m venv env
+source env/bin/activate
+
+# On Windows
+python -m venv env
+.\env\Scripts\activate
+
+
+# run the app
+python3 -m uvicorn backend.main:app --reload
+
+
+# generate the requirement.txt file
+pipreqs .

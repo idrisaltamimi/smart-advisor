@@ -1,0 +1,4 @@
+backend==0.2.4.1
+fastapi==0.134.0
+python-dotenv==1.2.1
+SQLAlchemy==2.0.47
