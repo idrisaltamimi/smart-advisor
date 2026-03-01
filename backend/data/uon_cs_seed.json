@@ -1,0 +1,1324 @@
+{
+  "major": {
+    "name": "Computer Science",
+    "total_credits_required": 135
+  },
+  "requirements": [
+    {
+      "name": "University Requirements",
+      "credits_required": 24
+    },
+    {
+      "name": "University Electives",
+      "credits_required": 3
+    },
+    {
+      "name": "College Requirements",
+      "credits_required": 27
+    },
+    {
+      "name": "College Electives",
+      "credits_required": 6
+    },
+    {
+      "name": "Major Requirements",
+      "credits_required": 60
+    },
+    {
+      "name": "Major Electives",
+      "credits_required": 15
+    }
+  ],
+  "courses": [
+    {
+      "code": "ARAB100",
+      "name": "ARABIC LANGUAGE I",
+      "credits": 3
+    },
+    {
+      "code": "HIST150",
+      "name": "ISLAMIC CIVILIZATION",
+      "credits": 3
+    },
+    {
+      "code": "ENGL150",
+      "name": "ENGLISH LANGUAGE I",
+      "credits": 3
+    },
+    {
+      "code": "ENGL152",
+      "name": "ENGLISH LANGUAGE II",
+      "credits": 3
+    },
+    {
+      "code": "ENGL155",
+      "name": "COMMUNICATION SKILLS",
+      "credits": 3
+    },
+    {
+      "code": "ARAB101",
+      "name": "ARABIC LANGUAGE II",
+      "credits": 3
+    },
+    {
+      "code": "COMP101",
+      "name": "COMPUTER SKILLS",
+      "credits": 3
+    },
+    {
+      "code": "MNGT100",
+      "name": "ENTREPRENEURSHIP CREATIVITY AND INNOVATION",
+      "credits": 3
+    },
+    {
+      "code": "DL",
+      "name": "DIGITAL LITERACY",
+      "credits": 0
+    },
+    {
+      "code": "MATH-BP",
+      "name": "BASIC PURE MATHEMATICS",
+      "credits": 0
+    },
+    {
+      "code": "ULLS-T",
+      "name": "LIFE AND STUDY SKILLS - TUTORIAL",
+      "credits": 0
+    },
+    {
+      "code": "ULLS",
+      "name": "LIFE AND STUDY SKILLS",
+      "credits": 0
+    },
+    {
+      "code": "EDUC210",
+      "name": "MENTAL HYGIENE",
+      "credits": 3
+    },
+    {
+      "code": "EDUC220",
+      "name": "PSYCHOLOGY OF CREATIVITY",
+      "credits": 3
+    },
+    {
+      "code": "ARAB110",
+      "name": "LITERATURE I",
+      "credits": 3
+    },
+    {
+      "code": "EDUC101",
+      "name": "INTRO. TO PSYCHOLOGY",
+      "credits": 3
+    },
+    {
+      "code": "UONE101",
+      "name": "UNIVERSITY ELECTIVE",
+      "credits": 3
+    },
+    {
+      "code": "SOCI130",
+      "name": "SOCIAL STUDIES",
+      "credits": 3
+    },
+    {
+      "code": "BIOL104",
+      "name": "AFLAJ OF OMAN",
+      "credits": 3
+    },
+    {
+      "code": "EDUC110",
+      "name": "LEGAL CULTURE",
+      "credits": 3
+    },
+    {
+      "code": "SOCI131",
+      "name": "POLICIES AND SOCIAL SERVICES IN OMAN AND THE GCC",
+      "credits": 3
+    },
+    {
+      "code": "SOCI132",
+      "name": "EDUCATIONAL SOCIOLOGY",
+      "credits": 3
+    },
+    {
+      "code": "EDUC230",
+      "name": "ATHLETICS",
+      "credits": 1
+    },
+    {
+      "code": "EDUC232",
+      "name": "GAMES TENNIS",
+      "credits": 1
+    },
+    {
+      "code": "EDUC234",
+      "name": "BASKETBALL",
+      "credits": 1
+    },
+    {
+      "code": "EDUC235",
+      "name": "VOLLEYBALL",
+      "credits": 1
+    },
+    {
+      "code": "EDUC236",
+      "name": "FITNESS",
+      "credits": 1
+    },
+    {
+      "code": "EDUC111",
+      "name": "ISLAMIC CULTURE",
+      "credits": 3
+    },
+    {
+      "code": "SOCI135",
+      "name": "INTERCULTURAL DIALOGUE SKILLS",
+      "credits": 3
+    },
+    {
+      "code": "SOCI134",
+      "name": "VOLUNTARY WORK",
+      "credits": 3
+    },
+    {
+      "code": "HIST120",
+      "name": "HISTORY OF OMAN AND ITS CIVILIZATION",
+      "credits": 3
+    },
+    {
+      "code": "SOCI136",
+      "name": "OMANI SOCIETY",
+      "credits": 3
+    },
+    {
+      "code": "ARAB206",
+      "name": "WOMEN IN QURAN",
+      "credits": 3
+    },
+    {
+      "code": "PHYS100",
+      "name": "INTRODUCTION TO NANOSCIENCE",
+      "credits": 3
+    },
+    {
+      "code": "STAT101",
+      "name": "INTRODUCTION TO STATISTICS",
+      "credits": 4
+    },
+    {
+      "code": "MATH116",
+      "name": "PRE-CALCULUS",
+      "credits": 4
+    },
+    {
+      "code": "BIOL101",
+      "name": "GENERAL BIOLOGY I",
+      "credits": 4
+    },
+    {
+      "code": "PHYS101",
+      "name": "GENERAL PHYSICS I",
+      "credits": 4
+    },
+    {
+      "code": "MATH211",
+      "name": "CALCULUS I",
+      "credits": 4
+    },
+    {
+      "code": "COMP151",
+      "name": "INTRODUCTION TO ALGORITHMS",
+      "credits": 4
+    },
+    {
+      "code": "MATH145",
+      "name": "LINEAR ALGEBRA I",
+      "credits": 3
+    },
+    {
+      "code": "BIOL102",
+      "name": "GENERAL BIOLOGY II",
+      "credits": 4
+    },
+    {
+      "code": "PHYS153",
+      "name": "THERMAL FLUIDS",
+      "credits": 4
+    },
+    {
+      "code": "STAT212",
+      "name": "SAMPLING TECHNIQUES",
+      "credits": 3
+    },
+    {
+      "code": "ENGL130",
+      "name": "GRAMMAR 1",
+      "credits": 3
+    },
+    {
+      "code": "EDUC202",
+      "name": "TECHNOLOGY OF EDUCATION",
+      "credits": 3
+    },
+    {
+      "code": "EDUC204",
+      "name": "SYSTEMS OF EDUCATION AND ITS ADMIN IN THE GULF STATES",
+      "credits": 3
+    },
+    {
+      "code": "ENGL160",
+      "name": "BRITISH CIVIL AND LITERATURE 1",
+      "credits": 3
+    },
+    {
+      "code": "ENGL132",
+      "name": "READING I",
+      "credits": 3
+    },
+    {
+      "code": "EDUC103",
+      "name": "EDUCATIONAL PSYCHOLOGY",
+      "credits": 3
+    },
+    {
+      "code": "ARAB130",
+      "name": "LITERARY CRITICISM",
+      "credits": 3
+    },
+    {
+      "code": "ENGL170",
+      "name": "AMERICAN CIVILIZATION AND LITERATURE 1",
+      "credits": 3
+    },
+    {
+      "code": "STAT352",
+      "name": "DEMOGRAPHICS AND HEALTH CARE STATISTICS",
+      "credits": 3
+    },
+    {
+      "code": "MATH212",
+      "name": "CALCULUS II",
+      "credits": 3
+    },
+    {
+      "code": "MATH221",
+      "name": "FOUNDATIONS OF MATHEMATICS",
+      "credits": 3
+    },
+    {
+      "code": "BIOL242",
+      "name": "INTRODUCTORY GENETICS",
+      "credits": 3
+    },
+    {
+      "code": "PHYS205",
+      "name": "EXPERIMENTAL METHODS IN ELECTRONICS",
+      "credits": 3
+    },
+    {
+      "code": "PHYS269",
+      "name": "ELECTRICAL AND MAGNETIC PROPERTIES OF MATERIALS",
+      "credits": 3
+    },
+    {
+      "code": "PHYS315",
+      "name": "RADIATION HEALTH PHYSICS",
+      "credits": 3
+    },
+    {
+      "code": "CHEM334",
+      "name": "BIOCHEMISTRY",
+      "credits": 3
+    },
+    {
+      "code": "ASCE101",
+      "name": "COLLEGE ELECTIVE",
+      "credits": 3
+    },
+    {
+      "code": "ASCE102",
+      "name": "COLLEGE ELECTIVE II",
+      "credits": 3
+    },
+    {
+      "code": "ARAB140",
+      "name": "ARABIC RHETORIC, PROSODY AND RHYME",
+      "credits": 3
+    },
+    {
+      "code": "FREN101",
+      "name": "COMM. EN FRANCAIS DE BASE",
+      "credits": 3
+    },
+    {
+      "code": "PHYS260",
+      "name": "SOUND AND OPTICS",
+      "credits": 4
+    },
+    {
+      "code": "PHYS375",
+      "name": "MATERIALS SCIENCE",
+      "credits": 3
+    },
+    {
+      "code": "EDUC213",
+      "name": "THE RESEARCH PROJECT",
+      "credits": 1
+    },
+    {
+      "code": "SPAN101",
+      "name": "INTRODUCTION TO SPANISH",
+      "credits": 3
+    },
+    {
+      "code": "STAT210",
+      "name": "PRINCIPLES OF PROBABILITY",
+      "credits": 3
+    },
+    {
+      "code": "COMP222",
+      "name": "OBJECT ORIENTED PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP233",
+      "name": "COMPUTER ARCHITECTURE AND ASSEMBLY LANGUAGE",
+      "credits": 3
+    },
+    {
+      "code": "COMP244",
+      "name": "DATABASE CONCEPTS AND APPLICATIONS",
+      "credits": 3
+    },
+    {
+      "code": "COMP277",
+      "name": "NETWORKS AND COMMUNICATIONS",
+      "credits": 3
+    },
+    {
+      "code": "COMP344",
+      "name": "SOFTWARE ENGINEERING",
+      "credits": 3
+    },
+    {
+      "code": "COMP355",
+      "name": "FUNDAMENTALS OF OPERATING SYSTEMS",
+      "credits": 3
+    },
+    {
+      "code": "COMP388",
+      "name": "COMPUTER GRAPHICS",
+      "credits": 3
+    },
+    {
+      "code": "COMP366",
+      "name": "SOFTWARE SYSTEM DEVELOPMENT",
+      "credits": 3
+    },
+    {
+      "code": "COMP422",
+      "name": "INTRODUCTION TO ARTIFICIAL INTELLIGENCE",
+      "credits": 3
+    },
+    {
+      "code": "COMP340",
+      "name": "DESIGN AND ANALYSIS OF ALGORITHMS",
+      "credits": 3
+    },
+    {
+      "code": "COMP300",
+      "name": "VISUAL PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP111",
+      "name": "DIGITAL LOGIC DESIGN",
+      "credits": 3
+    },
+    {
+      "code": "COMP221",
+      "name": "DISCRETE STRUCTURES",
+      "credits": 3
+    },
+    {
+      "code": "COMP255",
+      "name": "DATA STRUCTURES",
+      "credits": 3
+    },
+    {
+      "code": "COMP270",
+      "name": "WEB DEVELOPMENT",
+      "credits": 3
+    },
+    {
+      "code": "COMP301",
+      "name": "INTRODUCTION TO JAVA",
+      "credits": 3
+    },
+    {
+      "code": "COMP433",
+      "name": "SYSTEM PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP499",
+      "name": "PROJECT IN COMPUTER SCIENCES",
+      "credits": 6
+    },
+    {
+      "code": "COMP240",
+      "name": "MULTIMEDIA SYSTEM DESIGN",
+      "credits": 3
+    },
+    {
+      "code": "COMP266",
+      "name": "COMPUTER ORGANIZATION",
+      "credits": 3
+    },
+    {
+      "code": "COMP322",
+      "name": "CONCEPTS OF PROGRAMMING LANGUAGES",
+      "credits": 3
+    },
+    {
+      "code": "COMP444",
+      "name": "HUMAN COMPUTER INTERFACE",
+      "credits": 3
+    },
+    {
+      "code": "COMP455",
+      "name": "COMPILER AND LANGUAGE DESIGN",
+      "credits": 3
+    },
+    {
+      "code": "COMP466",
+      "name": "SOCIETAL ISSUES IN COMPUTING",
+      "credits": 2
+    },
+    {
+      "code": "COMP350",
+      "name": "NUMERICAL METHODS FOR COMPUTING",
+      "credits": 3
+    },
+    {
+      "code": "COMP360",
+      "name": "COMPUTER MODELING AND SIMULATION",
+      "credits": 3
+    },
+    {
+      "code": "COMP370",
+      "name": "ADVANCED DATABASE DESIGN",
+      "credits": 3
+    },
+    {
+      "code": "COMP410",
+      "name": "COMPUTER SYSTEM SECURITY",
+      "credits": 3
+    },
+    {
+      "code": "COMP450",
+      "name": "IMAGE PROCESSING",
+      "credits": 3
+    },
+    {
+      "code": "COMP470",
+      "name": "ADVANCED NETWORK TOPICS",
+      "credits": 3
+    },
+    {
+      "code": "COMP230",
+      "name": "INTERNET TECHNOLOGY",
+      "credits": 3
+    },
+    {
+      "code": "COMP290",
+      "name": "SYSTEM ANALYSIS AND DESIGN",
+      "credits": 3
+    },
+    {
+      "code": "COMP400",
+      "name": "EXTERNAL TRAINING",
+      "credits": 3
+    },
+    {
+      "code": "COMP405",
+      "name": "ADVANCED VISUAL PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP406",
+      "name": "ADVANCED JAVA PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP475",
+      "name": "MOBILE PROGRAMMING",
+      "credits": 3
+    },
+    {
+      "code": "COMP497",
+      "name": "SPECIAL TOPICS IN COMPUTER SCIENCES",
+      "credits": 3
+    },
+    {
+      "code": "COMP333",
+      "name": "FORMAL LANGUAGES, FINITE AUTOMATA AND COMPUTATION THEORY",
+      "credits": 3
+    },
+    {
+      "code": "ENGL222",
+      "name": "HISTORY OF THE WORLD AND CIVIL.",
+      "credits": null
+    },
+    {
+      "code": "PHYS150",
+      "name": "GENERAL PHYSICS II",
+      "credits": null
+    },
+    {
+      "code": "PHYS204",
+      "name": "MODERN PHYSICS",
+      "credits": null
+    },
+    {
+      "code": "CHEM265",
+      "name": "ORGANIC CHEMISTRY I",
+      "credits": null
+    }
+  ],
+  "requirement_courses": [
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ARAB100"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "HIST150"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ENGL150"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ENGL152"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ENGL155"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ARAB101"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "COMP101"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "MNGT100"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "DL"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "MATH-BP"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ULLS-T"
+    },
+    {
+      "requirement_name": "University Requirements",
+      "course_code": "ULLS"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC210"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC220"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "ARAB110"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC101"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "UONE101"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI130"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "BIOL104"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC110"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI131"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI132"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC230"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC232"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC234"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC235"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC236"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "EDUC111"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI135"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI134"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "HIST120"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "SOCI136"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "ARAB206"
+    },
+    {
+      "requirement_name": "University Electives",
+      "course_code": "PHYS100"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "STAT101"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "MATH116"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "BIOL101"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "PHYS101"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "MATH211"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "COMP151"
+    },
+    {
+      "requirement_name": "College Requirements",
+      "course_code": "MATH145"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "BIOL102"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS153"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "STAT212"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ENGL130"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "EDUC202"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "EDUC204"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ENGL160"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ENGL132"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "EDUC103"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ARAB130"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ENGL170"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "STAT352"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "MATH212"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "MATH221"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "BIOL242"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS205"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS269"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS315"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "CHEM334"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ASCE101"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ASCE102"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "ARAB140"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "FREN101"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS260"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "PHYS375"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "EDUC213"
+    },
+    {
+      "requirement_name": "College Electives",
+      "course_code": "SPAN101"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "STAT210"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP222"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP233"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP244"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP277"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP344"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP355"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP388"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP366"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP422"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP340"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP300"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP111"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP221"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP255"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP270"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP301"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP433"
+    },
+    {
+      "requirement_name": "Major Requirements",
+      "course_code": "COMP499"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP240"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP266"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP322"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP444"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP455"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP466"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP350"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP360"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP370"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP410"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP450"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP470"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP230"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP290"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP400"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP405"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP406"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP475"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP497"
+    },
+    {
+      "requirement_name": "Major Electives",
+      "course_code": "COMP333"
+    }
+  ],
+  "prerequisites": [
+    {
+      "course_code": "HIST150",
+      "prerequisite_code": "ULLS-T"
+    },
+    {
+      "course_code": "ARAB101",
+      "prerequisite_code": "ARAB100"
+    },
+    {
+      "course_code": "COMP101",
+      "prerequisite_code": "DL"
+    },
+    {
+      "course_code": "COMP101",
+      "prerequisite_code": "MATH-BP"
+    },
+    {
+      "course_code": "ENGL152",
+      "prerequisite_code": "ENGL150"
+    },
+    {
+      "course_code": "ENGL155",
+      "prerequisite_code": "ENGL152"
+    },
+    {
+      "course_code": "PHYS101",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "MATH211",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "COMP151",
+      "prerequisite_code": "COMP101"
+    },
+    {
+      "course_code": "MATH145",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "BIOL102",
+      "prerequisite_code": "BIOL101"
+    },
+    {
+      "course_code": "PHYS153",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "STAT212",
+      "prerequisite_code": "STAT101"
+    },
+    {
+      "course_code": "EDUC202",
+      "prerequisite_code": "COMP101"
+    },
+    {
+      "course_code": "ENGL160",
+      "prerequisite_code": "ENGL222"
+    },
+    {
+      "course_code": "ENGL160",
+      "prerequisite_code": "ENGL155"
+    },
+    {
+      "course_code": "ENGL170",
+      "prerequisite_code": "ENGL222"
+    },
+    {
+      "course_code": "ENGL170",
+      "prerequisite_code": "ENGL155"
+    },
+    {
+      "course_code": "STAT352",
+      "prerequisite_code": "STAT101"
+    },
+    {
+      "course_code": "MATH212",
+      "prerequisite_code": "MATH211"
+    },
+    {
+      "course_code": "MATH221",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "BIOL242",
+      "prerequisite_code": "BIOL101"
+    },
+    {
+      "course_code": "PHYS205",
+      "prerequisite_code": "PHYS150"
+    },
+    {
+      "course_code": "PHYS269",
+      "prerequisite_code": "PHYS150"
+    },
+    {
+      "course_code": "PHYS315",
+      "prerequisite_code": "PHYS204"
+    },
+    {
+      "course_code": "CHEM334",
+      "prerequisite_code": "CHEM265"
+    },
+    {
+      "course_code": "PHYS260",
+      "prerequisite_code": "PHYS101"
+    },
+    {
+      "course_code": "PHYS375",
+      "prerequisite_code": "PHYS204"
+    },
+    {
+      "course_code": "STAT210",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "STAT210",
+      "prerequisite_code": "STAT101"
+    },
+    {
+      "course_code": "COMP111",
+      "prerequisite_code": "COMP101"
+    },
+    {
+      "course_code": "COMP221",
+      "prerequisite_code": "COMP101"
+    },
+    {
+      "course_code": "COMP221",
+      "prerequisite_code": "MATH116"
+    },
+    {
+      "course_code": "COMP222",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP233",
+      "prerequisite_code": "COMP111"
+    },
+    {
+      "course_code": "COMP244",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP277",
+      "prerequisite_code": "COMP111"
+    },
+    {
+      "course_code": "COMP344",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP355",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP388",
+      "prerequisite_code": "MATH145"
+    },
+    {
+      "course_code": "COMP388",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP366",
+      "prerequisite_code": "COMP344"
+    },
+    {
+      "course_code": "COMP422",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP340",
+      "prerequisite_code": "COMP221"
+    },
+    {
+      "course_code": "COMP340",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP300",
+      "prerequisite_code": "COMP222"
+    },
+    {
+      "course_code": "COMP255",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP301",
+      "prerequisite_code": "COMP222"
+    },
+    {
+      "course_code": "COMP433",
+      "prerequisite_code": "COMP355"
+    },
+    {
+      "course_code": "COMP240",
+      "prerequisite_code": "COMP222"
+    },
+    {
+      "course_code": "COMP266",
+      "prerequisite_code": "COMP233"
+    },
+    {
+      "course_code": "COMP322",
+      "prerequisite_code": "COMP233"
+    },
+    {
+      "course_code": "COMP322",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP444",
+      "prerequisite_code": "COMP366"
+    },
+    {
+      "course_code": "COMP455",
+      "prerequisite_code": "COMP333"
+    },
+    {
+      "course_code": "COMP466",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP350",
+      "prerequisite_code": "MATH145"
+    },
+    {
+      "course_code": "COMP350",
+      "prerequisite_code": "COMP255"
+    },
+    {
+      "course_code": "COMP360",
+      "prerequisite_code": "COMP340"
+    },
+    {
+      "course_code": "COMP370",
+      "prerequisite_code": "COMP244"
+    },
+    {
+      "course_code": "COMP410",
+      "prerequisite_code": "COMP233"
+    },
+    {
+      "course_code": "COMP410",
+      "prerequisite_code": "COMP277"
+    },
+    {
+      "course_code": "COMP450",
+      "prerequisite_code": "COMP422"
+    },
+    {
+      "course_code": "COMP450",
+      "prerequisite_code": "MATH145"
+    },
+    {
+      "course_code": "COMP470",
+      "prerequisite_code": "COMP277"
+    },
+    {
+      "course_code": "COMP230",
+      "prerequisite_code": "COMP151"
+    },
+    {
+      "course_code": "COMP290",
+      "prerequisite_code": "COMP244"
+    },
+    {
+      "course_code": "COMP405",
+      "prerequisite_code": "COMP300"
+    },
+    {
+      "course_code": "COMP406",
+      "prerequisite_code": "COMP301"
+    },
+    {
+      "course_code": "COMP475",
+      "prerequisite_code": "COMP277"
+    },
+    {
+      "course_code": "COMP475",
+      "prerequisite_code": "COMP301"
+    },
+    {
+      "course_code": "COMP333",
+      "prerequisite_code": "COMP221"
+    }
+  ],
+  "corequisites": [
+    {
+      "course_code": "HIST150",
+      "corequisite_code": "ULLS-T"
+    },
+    {
+      "course_code": "ULLS-T",
+      "corequisite_code": "ULLS"
+    },
+    {
+      "course_code": "ULLS",
+      "corequisite_code": "ULLS-T"
+    }
+  ],
+  "notes": "Rewritten from the provided EduWave study plan screenshots, then filtered to exclude courses whose codes end with 'L' (lab/tutorial-style rows such as COMP101L, BIOL101L, etc.). Referenced-only prerequisite/corequisite courses that appeared only inside cells were kept if they do not end with 'L'."
+}
