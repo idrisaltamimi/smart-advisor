@@ -6,6 +6,7 @@ from backend.database import engine, Base, get_db
 from backend import models
 from backend.auth import hash_password, verify_password, create_access_token, get_current_user
 from backend.schema import UserCreate, UserOut, LoginRequest, AuthResponse, MajorOut, SetMajorRequest
+from backend.advisor import router as advisor_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(advisor_router)
 
 
 def user_to_out(user: models.User) -> UserOut:

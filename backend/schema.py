@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 from decimal import Decimal
 
 
@@ -172,3 +172,37 @@ class CourseFeedbackOut(CourseFeedbackBase):
 
     class Config:
         from_attributes = True
+
+
+# ── Advisor ───────────────────────────────────────────────────────────────────
+
+class GenerateRequest(BaseModel):
+    semester: Literal["Fall", "Spring", "Summer"]
+    max_credits: int
+    description: Optional[str] = None
+
+class SuggestedCourse(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+    credits: int
+    requirement_category: str
+    reason: str
+
+class GenerateResponse(BaseModel):
+    suggested_courses: list[SuggestedCourse]
+    total_credits: int
+    semester_label: str
+    warning: Optional[str] = None
+
+class EnrollCourse(BaseModel):
+    course_id: str
+
+class EnrollRequest(BaseModel):
+    semester_label: str
+    courses: list[EnrollCourse]
+
+class EnrollResponse(BaseModel):
+    semester_id: str
+    semester_label: str
+    enrolled_count: int

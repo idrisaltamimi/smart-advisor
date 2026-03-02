@@ -105,3 +105,60 @@ export function apiGetMajors(): Promise<Major[]> {
 export function apiSetMajor(major_id: string, token: string): Promise<User> {
   return request<User>("/users/me/major", { method: "POST", body: JSON.stringify({ major_id }) }, token)
 }
+
+// ── Advisor ───────────────────────────────────────────────────────────────────
+
+export type SemesterType = 'Fall' | 'Spring' | 'Summer'
+
+export interface SuggestedCourse {
+  course_id: string
+  course_code: string
+  course_name: string
+  credits: number
+  requirement_category: string
+  reason: string
+}
+
+export interface GenerateResponse {
+  suggested_courses: SuggestedCourse[]
+  total_credits: number
+  semester_label: string
+  warning: string | null
+}
+
+export interface EnrollResponse {
+  semester_id: string
+  semester_label: string
+  enrolled_count: number
+}
+
+export function apiGeneratePlan(
+  semester: SemesterType,
+  max_credits: number,
+  description: string | null,
+  token: string
+): Promise<GenerateResponse> {
+  return request<GenerateResponse>(
+    "/advisor/generate",
+    { method: "POST", body: JSON.stringify({ semester, max_credits, description }) },
+    token
+  )
+}
+
+export function apiEnrollPlan(
+  semester_label: string,
+  course_ids: string[],
+  token: string
+): Promise<EnrollResponse> {
+  return request<EnrollResponse>(
+    "/advisor/enroll",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        semester_label,
+        courses: course_ids.map((course_id) => ({ course_id })),
+      }),
+    },
+    token
+  )
+}
