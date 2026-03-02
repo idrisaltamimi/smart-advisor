@@ -186,3 +186,49 @@ export function apiGetAlternatives(
     token
   )
 }
+
+// ── Semester History ──────────────────────────────────────────────────────────
+
+export interface SemesterCourseDetail {
+  course_id: string
+  course_code: string
+  course_name: string
+  credits: number
+  status: string
+  grade: string | null
+}
+
+export interface SemesterDetail {
+  id: string
+  semester_label: string
+  semester_gpa: number | null
+  status: string
+  total_credits: number
+  courses: SemesterCourseDetail[]
+}
+
+export interface SemestersResponse {
+  semesters: SemesterDetail[]
+}
+
+export interface UpdateSemesterStatusResponse {
+  semester_id: string
+  new_status: string
+  updated_count: number
+}
+
+export function apiGetSemesters(token: string): Promise<SemestersResponse> {
+  return request<SemestersResponse>('/advisor/semesters', {}, token)
+}
+
+export function apiUpdateSemesterStatus(
+  semester_id: string,
+  status: 'enrolled' | 'completed',
+  token: string
+): Promise<UpdateSemesterStatusResponse> {
+  return request<UpdateSemesterStatusResponse>(
+    `/advisor/semesters/${semester_id}/status`,
+    { method: 'PATCH', body: JSON.stringify({ status }) },
+    token
+  )
+}

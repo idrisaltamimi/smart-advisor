@@ -19,7 +19,12 @@ from backend.schema import (
     EnrollResponse,
     GenerateRequest,
     GenerateResponse,
+    SemesterCourseDetail,
+    SemesterDetail,
+    SemestersResponse,
     SuggestedCourse,
+    UpdateSemesterStatusRequest,
+    UpdateSemesterStatusResponse,
 )
 
 router = APIRouter(prefix="/advisor", tags=["advisor"])
@@ -36,6 +41,18 @@ def _get_openai() -> OpenAI:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _compute_semester_status(semester_courses: list) -> str:
+    """Derive semester status from its courses. 'enrolled' wins for mixed states."""
+    if not semester_courses:
+        return "planned"
+    statuses = {sc.status for sc in semester_courses}
+    if "enrolled" in statuses:
+        return "current"
+    if statuses == {"completed"}:
+        return "completed"
+    return "planned"
 
 
 def _gcd_of_list(values: list[int]) -> int:
@@ -500,3 +517,103 @@ def get_alternatives(
     ]
 
     return AlternativesResponse(alternatives=alternatives)
+
+
+@router.get("/semesters", response_model=SemestersResponse)
+def get_semesters(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    semesters = (
+        db.query(models.Semester)
+        .filter(models.Semester.student_id == student.id)
+        .all()
+    )
+
+    result = []
+    for sem in semesters:
+        computed_status = _compute_semester_status(sem.semester_courses)
+        courses = [
+            SemesterCourseDetail(
+                course_id=sc.course_id,
+                course_code=sc.course.code,
+                course_name=sc.course.name,
+                credits=sc.course.credits,
+                status=sc.status,
+                grade=sc.grade,
+            )
+            for sc in sem.semester_courses
+        ]
+        total_credits = sum(c.credits for c in courses)
+        result.append(
+            SemesterDetail(
+                id=sem.id,
+                semester_label=sem.semester_label,
+                semester_gpa=sem.semester_gpa,
+                status=computed_status,
+                total_credits=total_credits,
+                courses=courses,
+            )
+        )
+
+    return SemestersResponse(semesters=result)
+
+
+@router.patch("/semesters/{semester_id}/status", response_model=UpdateSemesterStatusResponse)
+def update_semester_status(
+    semester_id: str,
+    body: UpdateSemesterStatusRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    sem = (
+        db.query(models.Semester)
+        .filter(
+            models.Semester.id == semester_id,
+            models.Semester.student_id == student.id,
+        )
+        .first()
+    )
+    if not sem:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found"
+        )
+
+    current_status = _compute_semester_status(sem.semester_courses)
+
+    # Validate transition
+    if body.status == "enrolled" and current_status != "planned":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot transition semester from '{current_status}' to 'enrolled'.",
+        )
+    if body.status == "completed" and current_status != "current":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot transition semester from '{current_status}' to 'completed'.",
+        )
+
+    # Apply transition atomically
+    for sc in sem.semester_courses:
+        sc.status = body.status
+    db.commit()
+
+    new_status = "current" if body.status == "enrolled" else "completed"
+
+    return UpdateSemesterStatusResponse(
+        semester_id=semester_id,
+        new_status=new_status,
+        updated_count=len(sem.semester_courses),
+    )

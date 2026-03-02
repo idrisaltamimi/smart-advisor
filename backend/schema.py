@@ -221,3 +221,43 @@ class AlternativeCourse(BaseModel):
 
 class AlternativesResponse(BaseModel):
     alternatives: list[AlternativeCourse]
+
+
+# ── Semester History ──────────────────────────────────────────────────────────
+
+class SemesterCourseDetail(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+    credits: int
+    status: str
+    grade: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SemesterDetail(BaseModel):
+    id: str
+    semester_label: str
+    semester_gpa: Optional[Decimal] = None
+    status: str          # computed: "planned" | "current" | "completed"
+    total_credits: int
+    courses: list[SemesterCourseDetail]
+
+    class Config:
+        from_attributes = True
+
+
+class SemestersResponse(BaseModel):
+    semesters: list[SemesterDetail]
+
+
+class UpdateSemesterStatusRequest(BaseModel):
+    status: Literal["enrolled", "completed"]   # enforces one-directional transitions
+
+
+class UpdateSemesterStatusResponse(BaseModel):
+    semester_id: str
+    new_status: str
+    updated_count: int
