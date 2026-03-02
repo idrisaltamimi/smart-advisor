@@ -1,6 +1,8 @@
 import json
 import os
 from decimal import Decimal
+from functools import reduce
+from math import gcd
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from openai import OpenAI
@@ -30,6 +32,12 @@ def _get_openai() -> OpenAI:
     return OpenAI(api_key=key)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _gcd_of_list(values: list[int]) -> int:
+    if not values:
+        return 0
+    return reduce(gcd, values)
+
 
 def compute_credit_cap(cgpa, semester: str) -> int:
     if semester == "Summer":
@@ -82,6 +90,29 @@ def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
     completed_codes = ctx["completed_course_codes"]
     satisfied_reqs = {r["name"] for r in ctx["requirement_progress"] if r["is_satisfied"]}
 
+    # 3a — Collect all major course IDs for unlock-scope calculation
+    all_major_course_ids: set[str] = set()
+    for req in student.major.requirements:
+        for rc in req.requirement_courses:
+            all_major_course_ids.add(rc.course_id)
+    remaining_major_ids = all_major_course_ids - completed_ids
+
+    # 3b — Pre-build per-requirement available credit lists (for credit-fit check)
+    req_to_credits: dict[str, list[int]] = {}
+    for req in student.major.requirements:
+        if req.name in satisfied_reqs:
+            continue
+        credits_list = []
+        for rc in req.requirement_courses:
+            c = rc.course
+            if c.id in completed_ids or c.credits == 0:
+                continue
+            prereq_codes = [p.prerequisite_course.code for p in c.prerequisites]
+            if not all(code in completed_codes for code in prereq_codes):
+                continue
+            credits_list.append(c.credits)
+        req_to_credits[req.name] = credits_list
+
     available: list[dict] = []
     seen_ids: set[str] = set()
 
@@ -102,6 +133,33 @@ def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
                 continue
 
             seen_ids.add(course.id)
+
+            # 3c — Unlock count: how many not-yet-completed major courses does this unlock?
+            unlock_count = sum(
+                1 for p in course.is_prerequisite_for
+                if p.course_id in remaining_major_ids
+            )
+
+            # 3c — Credit fit: will taking this course leave an exact-fillable gap?
+            req_info = next(
+                (r for r in ctx["requirement_progress"] if r["name"] == req.name), None
+            )
+            credits_remaining = req_info["credits_remaining"] if req_info else 0
+            after_taking = credits_remaining - course.credits
+
+            if after_taking < 0:
+                credit_fit = "AVOID"
+            elif after_taking == 0:
+                credit_fit = "GOOD"
+            else:
+                other_credits = list(req_to_credits.get(req.name, []))
+                try:
+                    other_credits.remove(course.credits)  # remove one instance only
+                except ValueError:
+                    pass
+                g = _gcd_of_list(other_credits)
+                credit_fit = "AVOID" if g == 0 or after_taking % g != 0 else "GOOD"
+
             available.append({
                 "course_id": course.id,
                 "code": course.code,
@@ -109,8 +167,16 @@ def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
                 "credits": course.credits,
                 "requirement_category": req.name,
                 "prerequisites": prereq_codes,
+                "unlock_count": unlock_count,
+                "credit_fit": credit_fit,
             })
 
+    # 3d — Sort: Major Requirements first, then Major Electives, then others;
+    #           within each tier prefer higher unlock counts.
+    CATEGORY_PRIORITY = {"Major Requirements": 0, "Major Electives": 1}
+    available.sort(
+        key=lambda c: (CATEGORY_PRIORITY.get(c["requirement_category"], 2), -c["unlock_count"])
+    )
     return available
 
 
@@ -180,8 +246,11 @@ def build_system_prompt(
     for cat, courses in by_cat.items():
         course_lines.append(f"  [{cat}]")
         for c in courses:
+            fit_tag = " [AVOID]" if c["credit_fit"] == "AVOID" else ""
+            unlock_tag = f" (unlocks {c['unlock_count']})" if c["unlock_count"] > 0 else ""
             course_lines.append(
-                f"    {c['code']} | {c['name']} | {c['credits']} cr | id:{c['course_id']}"
+                f"    {c['code']} | {c['name']} | {c['credits']} cr"
+                f" | id:{c['course_id']}{unlock_tag}{fit_tag}"
             )
     course_block = "\n".join(course_lines)
 
@@ -210,6 +279,10 @@ Available courses (only these may be suggested):
 Rules:
 - Total credits of suggested courses MUST NOT exceed {max_credits}.
 - Use exact course_id values from the list above.
+- Courses are listed in priority order: Major Requirements first, then Major Electives, then others. Prefer courses from higher-priority categories.
+- Prefer courses with higher unlock counts — they unblock more of the student's future curriculum.
+- Do NOT suggest courses marked [AVOID] unless it is the student's only option in that requirement category — these cause a credit gap that can never be filled exactly.
+- Prefer higher-credit courses over lower-credit courses when both satisfy the same requirement.
 - Spread courses across different requirement categories when possible (diversity).{summer_rule}
 - Call suggest_semester_plan exactly once with your chosen courses. No plain-text response.
 """
