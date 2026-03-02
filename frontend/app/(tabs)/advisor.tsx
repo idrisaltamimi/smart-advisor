@@ -1,7 +1,9 @@
 import React, { useState } from "react"
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -316,9 +318,11 @@ export default function AdvisorScreen() {
 
   // ── Form ───────────────────────────────────────────────────────────────────
   return (
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
     >
       <ThemedText type="title" style={styles.formTitle}>
         Plan a Semester
@@ -414,6 +418,7 @@ export default function AdvisorScreen() {
         <ThemedText style={styles.primaryBtnText}>Generate Plan</ThemedText>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

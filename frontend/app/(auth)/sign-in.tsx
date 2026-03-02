@@ -1,9 +1,10 @@
 import { Link } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -24,6 +25,8 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const passwordRef = useRef<TextInput>(null);
 
   async function handleSignIn() {
     if (!email || !password) {
@@ -49,49 +52,61 @@ export default function SignIn() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
-        <View style={styles.titleRow}>
-          <ThemedText type="title" style={styles.title}>Sign In</ThemedText>
-          {__DEV__ && (
-            <TouchableOpacity onPress={fillDevCredentials} style={[styles.devBadge, { backgroundColor: colors.tint }]}>
-              <ThemedText style={styles.devBadgeText}>DEV</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.inner}>
+          <View style={styles.titleRow}>
+            <ThemedText type="title" style={styles.title}>Sign In</ThemedText>
+            {__DEV__ && (
+              <TouchableOpacity onPress={fillDevCredentials} style={[styles.devBadge, { backgroundColor: colors.tint }]}>
+                <ThemedText style={styles.devBadgeText}>DEV</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        <TextInput
-          style={inputStyle}
-          placeholder="Email"
-          placeholderTextColor={colors.icon}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            style={inputStyle}
+            placeholder="Email"
+            placeholderTextColor={colors.icon}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            value={email}
+            onChangeText={setEmail}
+          />
 
-        <TextInput
-          style={inputStyle}
-          placeholder="Password"
-          placeholderTextColor={colors.icon}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <TextInput
+            ref={passwordRef}
+            style={inputStyle}
+            placeholder="Password"
+            placeholderTextColor={colors.icon}
+            secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
+            returnKeyType="done"
+            onSubmitEditing={handleSignIn}
+            value={password}
+            onChangeText={setPassword}
+          />
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.tint }]}
-          onPress={handleSignIn}
-          disabled={loading}
-        >
-          <ThemedText style={styles.buttonText}>{loading ? 'Signing in…' : 'Sign In'}</ThemedText>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.tint }]}
+            onPress={handleSignIn}
+            disabled={loading}
+          >
+            <ThemedText style={styles.buttonText}>{loading ? 'Signing in…' : 'Sign In'}</ThemedText>
+          </TouchableOpacity>
 
-        <View style={styles.footer}>
-          <ThemedText>Don't have an account? </ThemedText>
-          <Link href="/(auth)/sign-up">
-            <ThemedText style={{ color: colors.tint }}>Sign Up</ThemedText>
-          </Link>
-        </View>
+          <View style={styles.footer}>
+            <ThemedText>Don't have an account? </ThemedText>
+            <Link href="/(auth)/sign-up">
+              <ThemedText style={{ color: colors.tint }}>Sign Up</ThemedText>
+            </Link>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -99,7 +114,8 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, gap: 16 },
+  kav: { flex: 1 },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, gap: 16, paddingVertical: 40 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   title: { marginBottom: 0 },
   devBadge: {
