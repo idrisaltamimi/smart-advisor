@@ -31,7 +31,9 @@ def _get_openai() -> OpenAI:
         )
     return OpenAI(api_key=key)
 
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _gcd_of_list(values: list[int]) -> int:
     if not values:
@@ -68,14 +70,16 @@ def build_student_context(student: models.Student) -> dict:
 
         credits_remaining = max(0, req.credits_required - credits_completed)
         is_satisfied = credits_remaining == 0
-        requirement_progress.append({
-            "name": req.name,
-            "credits_required": req.credits_required,
-            "credits_completed": credits_completed,
-            "credits_remaining": credits_remaining,
-            "is_satisfied": is_satisfied,
-            "completed_codes": completed_in_req,
-        })
+        requirement_progress.append(
+            {
+                "name": req.name,
+                "credits_required": req.credits_required,
+                "credits_completed": credits_completed,
+                "credits_remaining": credits_remaining,
+                "is_satisfied": is_satisfied,
+                "completed_codes": completed_in_req,
+            }
+        )
 
     return {
         "cgpa": float(student.cgpa) if student.cgpa is not None else None,
@@ -88,7 +92,9 @@ def build_student_context(student: models.Student) -> dict:
 def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
     completed_ids = ctx["completed_course_ids"]
     completed_codes = ctx["completed_course_codes"]
-    satisfied_reqs = {r["name"] for r in ctx["requirement_progress"] if r["is_satisfied"]}
+    satisfied_reqs = {
+        r["name"] for r in ctx["requirement_progress"] if r["is_satisfied"]
+    }
 
     # 3a — Collect all major course IDs for unlock-scope calculation
     all_major_course_ids: set[str] = set()
@@ -136,7 +142,8 @@ def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
 
             # 3c — Unlock count: how many not-yet-completed major courses does this unlock?
             unlock_count = sum(
-                1 for p in course.is_prerequisite_for
+                1
+                for p in course.is_prerequisite_for
                 if p.course_id in remaining_major_ids
             )
 
@@ -160,22 +167,27 @@ def build_available_courses(student: models.Student, ctx: dict) -> list[dict]:
                 g = _gcd_of_list(other_credits)
                 credit_fit = "AVOID" if g == 0 or after_taking % g != 0 else "GOOD"
 
-            available.append({
-                "course_id": course.id,
-                "code": course.code,
-                "name": course.name,
-                "credits": course.credits,
-                "requirement_category": req.name,
-                "prerequisites": prereq_codes,
-                "unlock_count": unlock_count,
-                "credit_fit": credit_fit,
-            })
+            available.append(
+                {
+                    "course_id": course.id,
+                    "code": course.code,
+                    "name": course.name,
+                    "credits": course.credits,
+                    "requirement_category": req.name,
+                    "prerequisites": prereq_codes,
+                    "unlock_count": unlock_count,
+                    "credit_fit": credit_fit,
+                }
+            )
 
     # 3d — Sort: Major Requirements first, then Major Electives, then others;
     #           within each tier prefer higher unlock counts.
     CATEGORY_PRIORITY = {"Major Requirements": 0, "Major Electives": 1}
     available.sort(
-        key=lambda c: (CATEGORY_PRIORITY.get(c["requirement_category"], 2), -c["unlock_count"])
+        key=lambda c: (
+            CATEGORY_PRIORITY.get(c["requirement_category"], 2),
+            -c["unlock_count"],
+        )
     )
     return available
 
@@ -203,8 +215,12 @@ SUGGEST_PLAN_TOOL = {
                             "reason": {"type": "string"},
                         },
                         "required": [
-                            "course_id", "course_code", "course_name",
-                            "credits", "requirement_category", "reason",
+                            "course_id",
+                            "course_code",
+                            "course_name",
+                            "credits",
+                            "requirement_category",
+                            "reason",
                         ],
                     },
                 }
@@ -223,6 +239,9 @@ def build_system_prompt(
     description: str | None,
 ) -> str:
     cgpa_str = f"{ctx['cgpa']:.2f}" if ctx["cgpa"] is not None else "N/A"
+    total_credits_completed = sum(
+        r["credits_completed"] for r in ctx["requirement_progress"]
+    )
 
     # Requirement progress block
     req_lines = []
@@ -247,7 +266,9 @@ def build_system_prompt(
         course_lines.append(f"  [{cat}]")
         for c in courses:
             fit_tag = " [AVOID]" if c["credit_fit"] == "AVOID" else ""
-            unlock_tag = f" (unlocks {c['unlock_count']})" if c["unlock_count"] > 0 else ""
+            unlock_tag = (
+                f" (unlocks {c['unlock_count']})" if c["unlock_count"] > 0 else ""
+            )
             course_lines.append(
                 f"    {c['code']} | {c['name']} | {c['credits']} cr"
                 f" | id:{c['course_id']}{unlock_tag}{fit_tag}"
@@ -268,6 +289,7 @@ def build_system_prompt(
 Student info:
   CGPA: {cgpa_str}
   Planning semester: {semester}
+  Total credits completed: {total_credits_completed}
   Max credits allowed: {max_credits}{desc_line}
 
 Requirement progress:
@@ -278,6 +300,7 @@ Available courses (only these may be suggested):
 
 Rules:
 - Total credits of suggested courses MUST NOT exceed {max_credits}.
+- Do NOT suggest any course whose name contains the word "project" (case-insensitive) and has 6 credits, unless the student's total credits completed is at least 90. Identify such courses yourself from the list above.
 - Use exact course_id values from the list above.
 - Courses are listed in priority order: Major Requirements first, then Major Electives, then others. Prefer courses from higher-priority categories.
 - Prefer courses with higher unlock counts — they unblock more of the student's future curriculum.
@@ -290,6 +313,7 @@ Rules:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @router.post("/generate", response_model=GenerateResponse)
 def generate_plan(
     body: GenerateRequest,
@@ -298,7 +322,9 @@ def generate_plan(
 ):
     student = current_user.student
     if not student:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
 
     # Server-side credit cap
     server_cap = compute_credit_cap(student.cgpa, body.semester)
@@ -321,7 +347,9 @@ def generate_plan(
         )
 
     available_ids = {c["course_id"] for c in available}
-    system_prompt = build_system_prompt(ctx, available, body.semester, max_credits, body.description)
+    system_prompt = build_system_prompt(
+        ctx, available, body.semester, max_credits, body.description
+    )
 
     response = _get_openai().chat.completions.create(
         model="gpt-4o",
@@ -363,7 +391,9 @@ def enroll_plan(
 ):
     student = current_user.student
     if not student:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
 
     # Check for duplicate semester
     existing = (
@@ -398,11 +428,13 @@ def enroll_plan(
     db.flush()  # get semester.id before commit
 
     for cid in course_ids:
-        db.add(models.SemesterCourse(
-            semester_id=semester.id,
-            course_id=cid,
-            status="planned",
-        ))
+        db.add(
+            models.SemesterCourse(
+                semester_id=semester.id,
+                course_id=cid,
+                status="planned",
+            )
+        )
 
     db.commit()
 
