@@ -162,3 +162,27 @@ export function apiEnrollPlan(
     token
   )
 }
+
+export interface AlternativeCourse {
+  course_id: string
+  course_code: string
+  course_name: string
+  credits: number
+  requirement_category: string
+}
+
+export interface AlternativesResponse {
+  alternatives: AlternativeCourse[]
+}
+
+export function apiGetAlternatives(
+  course_id: string,
+  exclude_course_ids: string[],
+  token: string
+): Promise<AlternativesResponse> {
+  return request<AlternativesResponse>(
+    "/advisor/alternatives",
+    { method: "POST", body: JSON.stringify({ course_id, exclude_course_ids }) },
+    token
+  )
+}

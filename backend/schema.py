@@ -206,3 +206,18 @@ class EnrollResponse(BaseModel):
     semester_id: str
     semester_label: str
     enrolled_count: int
+
+
+class AlternativesRequest(BaseModel):
+    course_id: str
+    exclude_course_ids: list[str]
+
+class AlternativeCourse(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+    credits: int
+    requirement_category: str
+
+class AlternativesResponse(BaseModel):
+    alternatives: list[AlternativeCourse]

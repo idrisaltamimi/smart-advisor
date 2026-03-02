@@ -12,6 +12,9 @@ from backend import models
 from backend.auth import get_current_user
 from backend.database import get_db
 from backend.schema import (
+    AlternativeCourse,
+    AlternativesRequest,
+    AlternativesResponse,
     EnrollRequest,
     EnrollResponse,
     GenerateRequest,
@@ -443,3 +446,57 @@ def enroll_plan(
         semester_label=semester.semester_label,
         enrolled_count=len(course_ids),
     )
+
+
+@router.post("/alternatives", response_model=AlternativesResponse)
+def get_alternatives(
+    body: AlternativesRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    # Look up the category of the course being swapped
+    target = db.query(models.Course).filter(models.Course.id == body.course_id).first()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+
+    # Find its requirement_category via RequirementCourse
+    rc = (
+        db.query(models.RequirementCourse)
+        .filter(models.RequirementCourse.course_id == body.course_id)
+        .join(models.Requirement)
+        .filter(models.Requirement.major_id == student.major_id)
+        .first()
+    )
+    if not rc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not in student's major"
+        )
+
+    category = rc.requirement.name
+
+    ctx = build_student_context(student)
+    available = build_available_courses(student, ctx)
+
+    exclude_set = set(body.exclude_course_ids)
+    alternatives = [
+        AlternativeCourse(
+            course_id=c["course_id"],
+            course_code=c["code"],
+            course_name=c["name"],
+            credits=c["credits"],
+            requirement_category=c["requirement_category"],
+        )
+        for c in available
+        if c["requirement_category"] == category
+        and c["credits"] == target.credits
+        and c["credit_fit"] != "AVOID"
+        and c["course_id"] not in exclude_set
+    ]
+
+    return AlternativesResponse(alternatives=alternatives)
