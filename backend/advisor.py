@@ -270,7 +270,9 @@ def build_available_courses(
             0 if course_entry["unlock_count"] > 0 else 1,  # path-openers first
             CATEGORY_PRIORITY.get(
                 course_entry["requirement_category"],
-                1 if course_entry.get("is_major_dept") else 3,  # same-dept = Major Elective tier
+                (
+                    1 if course_entry.get("is_major_dept") else 3
+                ),  # same-dept = Major Elective tier
             ),
             -course_entry["unlock_count"],
         )
@@ -368,7 +370,9 @@ def build_system_prompt(
                 if course_entry["unlock_count"] > 0
                 else ""
             )
-            major_dept_tag = " [MAJOR-DEPT]" if course_entry.get("is_major_dept") else ""
+            major_dept_tag = (
+                " [MAJOR-DEPT]" if course_entry.get("is_major_dept") else ""
+            )
             available_course_lines.append(
                 f"    {course_entry['code']} | {course_entry['name']} | {course_entry['credits']} cr"
                 f" | id:{course_entry['course_id']}{unlock_count_tag}{major_dept_tag}{credit_fit_tag}"
@@ -471,6 +475,7 @@ def generate_plan(
     response = _get_openai().chat.completions.create(
         model="gpt-4o",
         temperature=0.3,
+        seed=42,
         messages=[{"role": "system", "content": system_prompt}],
         tools=[SUGGEST_PLAN_TOOL],
         tool_choice={"type": "function", "function": {"name": "suggest_semester_plan"}},
