@@ -48,7 +48,9 @@ def _compute_semester_status(semester_courses: list) -> str:
     """Derive semester status from its courses. 'enrolled' wins for mixed states."""
     if not semester_courses:
         return "planned"
-    all_course_statuses = {semester_course.status for semester_course in semester_courses}
+    all_course_statuses = {
+        semester_course.status for semester_course in semester_courses
+    }
     if "enrolled" in all_course_statuses:
         return "current"
     if all_course_statuses == {"completed"}:
@@ -116,11 +118,15 @@ def build_student_context(student: models.Student) -> dict:
     }
 
 
-def build_available_courses(student: models.Student, student_context: dict) -> list[dict]:
+def build_available_courses(
+    student: models.Student, student_context: dict
+) -> list[dict]:
     completed_course_ids = student_context["completed_course_ids"]
     completed_course_codes = student_context["completed_course_codes"]
     satisfied_requirement_names = {
-        req["name"] for req in student_context["requirement_progress"] if req["is_satisfied"]
+        req["name"]
+        for req in student_context["requirement_progress"]
+        if req["is_satisfied"]
     }
 
     # 3a — Collect all major course IDs for unlock-scope calculation
@@ -138,9 +144,14 @@ def build_available_courses(student: models.Student, student_context: dict) -> l
         eligible_credits = []
         for requirement_course in requirement.requirement_courses:
             candidate_course = requirement_course.course
-            if candidate_course.id in completed_course_ids or candidate_course.credits == 0:
+            if (
+                candidate_course.id in completed_course_ids
+                or candidate_course.credits == 0
+            ):
                 continue
-            prereq_codes = [p.prerequisite_course.code for p in candidate_course.prerequisites]
+            prereq_codes = [
+                p.prerequisite_course.code for p in candidate_course.prerequisites
+            ]
             if not all(code in completed_course_codes for code in prereq_codes):
                 continue
             eligible_credits.append(candidate_course.credits)
@@ -176,26 +187,41 @@ def build_available_courses(student: models.Student, student_context: dict) -> l
 
             # 3c — Credit fit: will taking this course leave an exact-fillable gap?
             requirement_progress_entry = next(
-                (r for r in student_context["requirement_progress"] if r["name"] == requirement.name),
+                (
+                    r
+                    for r in student_context["requirement_progress"]
+                    if r["name"] == requirement.name
+                ),
                 None,
             )
-            credits_remaining_in_requirement = requirement_progress_entry["credits_remaining"] if requirement_progress_entry else 0
-            credits_remaining_after_taking = credits_remaining_in_requirement - course.credits
+            credits_remaining_in_requirement = (
+                requirement_progress_entry["credits_remaining"]
+                if requirement_progress_entry
+                else 0
+            )
+            credits_remaining_after_taking = (
+                credits_remaining_in_requirement - course.credits
+            )
 
             if credits_remaining_after_taking < 0:
                 credit_fit = "AVOID"
             elif credits_remaining_after_taking == 0:
                 credit_fit = "GOOD"
             else:
-                other_eligible_credits = list(requirement_available_credits.get(requirement.name, []))
+                other_eligible_credits = list(
+                    requirement_available_credits.get(requirement.name, [])
+                )
                 try:
-                    other_eligible_credits.remove(course.credits)  # remove one instance only
+                    other_eligible_credits.remove(
+                        course.credits
+                    )  # remove one instance only
                 except ValueError:
                     pass
                 remaining_credits_gcd = _gcd_of_list(other_eligible_credits)
                 credit_fit = (
                     "AVOID"
-                    if remaining_credits_gcd == 0 or credits_remaining_after_taking % remaining_credits_gcd != 0
+                    if remaining_credits_gcd == 0
+                    or credits_remaining_after_taking % remaining_credits_gcd != 0
                     else "GOOD"
                 )
 
@@ -273,7 +299,11 @@ def build_system_prompt(
     description: str | None,
     is_early_semester: bool = False,
 ) -> str:
-    cgpa_str = f"{student_context['cgpa']:.2f}" if student_context["cgpa"] is not None else "N/A"
+    cgpa_str = (
+        f"{student_context['cgpa']:.2f}"
+        if student_context["cgpa"] is not None
+        else "N/A"
+    )
     total_credits_completed = sum(
         req["credits_completed"] for req in student_context["requirement_progress"]
     )
@@ -285,7 +315,9 @@ def build_system_prompt(
             requirement_progress_lines.append(f"  - {req_progress['name']}: SATISFIED")
         else:
             completed_codes_str = (
-                ", ".join(req_progress["completed_codes"]) if req_progress["completed_codes"] else "none"
+                ", ".join(req_progress["completed_codes"])
+                if req_progress["completed_codes"]
+                else "none"
             )
             requirement_progress_lines.append(
                 f"  - {req_progress['name']}: {req_progress['credits_remaining']} credits remaining "
@@ -296,7 +328,9 @@ def build_system_prompt(
     # Available courses grouped by category
     courses_by_category: dict[str, list[dict]] = {}
     for course_entry in available_courses:
-        courses_by_category.setdefault(course_entry["requirement_category"], []).append(course_entry)
+        courses_by_category.setdefault(course_entry["requirement_category"], []).append(
+            course_entry
+        )
 
     available_course_lines = []
     for category, category_courses in courses_by_category.items():
@@ -304,7 +338,9 @@ def build_system_prompt(
         for course_entry in category_courses:
             credit_fit_tag = " [AVOID]" if course_entry["credit_fit"] == "AVOID" else ""
             unlock_count_tag = (
-                f" (unlocks {course_entry['unlock_count']})" if course_entry["unlock_count"] > 0 else ""
+                f" (unlocks {course_entry['unlock_count']})"
+                if course_entry["unlock_count"] > 0
+                else ""
             )
             available_course_lines.append(
                 f"    {course_entry['code']} | {course_entry['name']} | {course_entry['credits']} cr"
@@ -396,7 +432,12 @@ def generate_plan(
 
     available_course_ids = {course["course_id"] for course in available_courses}
     system_prompt = build_system_prompt(
-        student_context, available_courses, body.semester, max_credits, body.description, is_early_semester
+        student_context,
+        available_courses,
+        body.semester,
+        max_credits,
+        body.description,
+        is_early_semester,
     )
 
     response = _get_openai().chat.completions.create(
@@ -407,7 +448,9 @@ def generate_plan(
         tool_choice={"type": "function", "function": {"name": "suggest_semester_plan"}},
     )
 
-    tool_call_arguments = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+    tool_call_arguments = json.loads(
+        response.choices[0].message.tool_calls[0].function.arguments
+    )
     ai_suggested_courses: list[dict] = tool_call_arguments.get("courses", [])
 
     # Safety loop: filter invalid IDs, enforce credit cap, enforce level restriction
@@ -461,7 +504,9 @@ def enroll_plan(
         )
 
     # Validate all course IDs
-    course_ids_to_enroll = [enrolled_course.course_id for enrolled_course in body.courses]
+    course_ids_to_enroll = [
+        enrolled_course.course_id for enrolled_course in body.courses
+    ]
     for course_id in course_ids_to_enroll:
         if not db.query(models.Course).filter(models.Course.id == course_id).first():
             raise HTTPException(
@@ -508,9 +553,13 @@ def get_alternatives(
         )
 
     # Look up the category of the course being swapped
-    target_course = db.query(models.Course).filter(models.Course.id == body.course_id).first()
+    target_course = (
+        db.query(models.Course).filter(models.Course.id == body.course_id).first()
+    )
     if not target_course:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
+        )
 
     # Find its requirement_category via RequirementCourse
     requirement_course = (
@@ -522,7 +571,8 @@ def get_alternatives(
     )
     if not requirement_course:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Course not in student's major"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not in student's major",
         )
 
     target_category = requirement_course.requirement.name
@@ -561,9 +611,7 @@ def get_semesters(
         )
 
     student_semesters = (
-        db.query(models.Semester)
-        .filter(models.Semester.student_id == student.id)
-        .all()
+        db.query(models.Semester).filter(models.Semester.student_id == student.id).all()
     )
 
     semester_details = []
@@ -595,7 +643,9 @@ def get_semesters(
     return SemestersResponse(semesters=semester_details)
 
 
-@router.patch("/semesters/{semester_id}/status", response_model=UpdateSemesterStatusResponse)
+@router.patch(
+    "/semesters/{semester_id}/status", response_model=UpdateSemesterStatusResponse
+)
 def update_semester_status(
     semester_id: str,
     body: UpdateSemesterStatusRequest,
