@@ -70,6 +70,12 @@ def _course_level(code: str) -> int:
     return int(match.group()) if match else 0
 
 
+def _course_prefix(code: str) -> str:
+    """Extract the alphabetic department prefix from a course code (e.g. 'COMP101' → 'COMP')."""
+    match = re.match(r"[A-Za-z]+", code)
+    return match.group().upper() if match else ""
+
+
 def compute_credit_cap(cgpa, semester: str) -> int:
     if semester == "Summer":
         return 9
@@ -136,6 +142,15 @@ def build_available_courses(
             all_major_course_ids.add(requirement_course.course_id)
     remaining_major_course_ids = all_major_course_ids - completed_course_ids
 
+    # Determine the major's department prefix(es) from "Major Requirements" / "Major Electives"
+    major_dept_prefixes: set[str] = set()
+    for requirement in student.major.requirements:
+        if requirement.name in ("Major Requirements", "Major Electives"):
+            for requirement_course in requirement.requirement_courses:
+                prefix = _course_prefix(requirement_course.course.code)
+                if prefix:
+                    major_dept_prefixes.add(prefix)
+
     # 3b — Pre-build per-requirement available credit lists (for credit-fit check)
     requirement_available_credits: dict[str, list[int]] = {}
     for requirement in student.major.requirements:
@@ -177,6 +192,12 @@ def build_available_courses(
                 continue
 
             already_added_course_ids.add(course.id)
+
+            # Tag non-major-category courses that share the major's department prefix
+            is_major_dept = (
+                requirement.name not in ("Major Requirements", "Major Electives")
+                and _course_prefix(course.code) in major_dept_prefixes
+            )
 
             # 3c — Unlock count: how many not-yet-completed major courses does this unlock?
             unlock_count = sum(
@@ -235,17 +256,22 @@ def build_available_courses(
                     "prerequisites": prereq_codes,
                     "unlock_count": unlock_count,
                     "credit_fit": credit_fit,
+                    "is_major_dept": is_major_dept,
                 }
             )
 
     # 3d — Sort: path-openers (unlock_count > 0) always beat zero-unlock courses;
     #           within each unlock tier: Major Requirements first, then Major Electives,
-    #           then others; then prefer higher unlock counts within the same category.
+    #           then same-dept gateway courses, then others;
+    #           then prefer higher unlock counts within the same category.
     CATEGORY_PRIORITY = {"Major Requirements": 0, "Major Electives": 1}
     available_courses.sort(
         key=lambda course_entry: (
             0 if course_entry["unlock_count"] > 0 else 1,  # path-openers first
-            CATEGORY_PRIORITY.get(course_entry["requirement_category"], 2),
+            CATEGORY_PRIORITY.get(
+                course_entry["requirement_category"],
+                1 if course_entry.get("is_major_dept") else 3,  # same-dept = Major Elective tier
+            ),
             -course_entry["unlock_count"],
         )
     )
@@ -342,9 +368,10 @@ def build_system_prompt(
                 if course_entry["unlock_count"] > 0
                 else ""
             )
+            major_dept_tag = " [MAJOR-DEPT]" if course_entry.get("is_major_dept") else ""
             available_course_lines.append(
                 f"    {course_entry['code']} | {course_entry['name']} | {course_entry['credits']} cr"
-                f" | id:{course_entry['course_id']}{unlock_count_tag}{credit_fit_tag}"
+                f" | id:{course_entry['course_id']}{unlock_count_tag}{major_dept_tag}{credit_fit_tag}"
             )
     available_courses_block = "\n".join(available_course_lines)
 
@@ -384,7 +411,8 @@ Rules:
 - Do NOT suggest any course whose name contains the word "project" (case-insensitive) and has 6 credits, unless the student's total credits completed is at least 90. Identify such courses yourself from the list above.
 - Use exact course_id values from the list above.
 - UNLOCK PRIORITY (highest importance): Courses with unlock_count > 0 open the path to major courses — the primary goal. ALWAYS prefer them over courses with unlock_count = 0, even if the unlocking course belongs to a lower-priority category.
-- Courses are listed in priority order: path-openers first, then Major Requirements, then Major Electives, then others.
+- Courses tagged [MAJOR-DEPT] share the same department prefix as the major's core courses (e.g. COMP101 for a CS major). They are gateway courses that directly enable major progression — treat them with the same urgency as Major Requirements regardless of which requirement category they appear under.
+- Courses are listed in priority order: path-openers first, then Major Requirements, then Major Electives / [MAJOR-DEPT] courses, then others.
 - Do NOT suggest courses marked [AVOID] unless it is the student's only option in that requirement category — these cause a credit gap that can never be filled exactly.
 - Prefer higher-credit courses over lower-credit courses when both satisfy the same requirement.
 - Spread courses across different requirement categories when possible (diversity).{summer_rule}{early_semester_rule}
