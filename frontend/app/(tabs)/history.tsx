@@ -203,6 +203,19 @@ export default function SemesterHistoryScreen() {
           </Section>
         )}
 
+        {completed.length > 0 && (
+          <Section title="Past">
+            {completed.map(sem => (
+              <SemesterCard
+                key={sem.id}
+                semester={sem}
+                colors={colors}
+                transitioning={false}
+              />
+            ))}
+          </Section>
+        )}
+
         {planned.length > 0 && (
           <Section title="Planned">
             {[...planned]
@@ -223,19 +236,6 @@ export default function SemesterHistoryScreen() {
                   cancelling={cancellingId === sem.id}
                 />
               ))}
-          </Section>
-        )}
-
-        {completed.length > 0 && (
-          <Section title="Past">
-            {completed.map(sem => (
-              <SemesterCard
-                key={sem.id}
-                semester={sem}
-                colors={colors}
-                transitioning={false}
-              />
-            ))}
           </Section>
         )}
       </ScrollView>
