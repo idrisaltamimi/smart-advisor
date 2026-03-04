@@ -137,11 +137,12 @@ export function apiGeneratePlan(
   semester: SemesterType,
   max_credits: number,
   description: string | null,
-  token: string
+  token: string,
+  exclude_course_ids: string[] = []
 ): Promise<GenerateResponse> {
   return request<GenerateResponse>(
     "/advisor/generate",
-    { method: "POST", body: JSON.stringify({ semester, max_credits, description }) },
+    { method: "POST", body: JSON.stringify({ semester, max_credits, description, exclude_course_ids }) },
     token
   )
 }

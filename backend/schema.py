@@ -180,6 +180,7 @@ class GenerateRequest(BaseModel):
     semester: Literal["Fall", "Spring", "Summer"]
     max_credits: int
     description: Optional[str] = None
+    exclude_course_ids: list[str] = []
 
 class SuggestedCourse(BaseModel):
     course_id: str

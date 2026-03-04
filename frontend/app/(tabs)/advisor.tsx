@@ -46,6 +46,7 @@ export default function AdvisorScreen() {
   const [description, setDescription] = useState("")
   const [result, setResult] = useState<GenerateResponse | null>(null)
   const [localCourses, setLocalCourses] = useState<SuggestedCourse[]>([])
+  const [excludedCourseIds, setExcludedCourseIds] = useState<string[]>([])
   const [enrolling, setEnrolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,7 +74,8 @@ export default function AdvisorScreen() {
         semester,
         maxCredits,
         description.trim() || null,
-        token
+        token,
+        excludedCourseIds
       )
       setResult(res)
       setLocalCourses(res.suggested_courses)
@@ -105,8 +107,14 @@ export default function AdvisorScreen() {
   function handleReset() {
     setResult(null)
     setLocalCourses([])
+    setExcludedCourseIds([])
     setError(null)
     setPhase("form")
+  }
+
+  function handleRemoveCourse(course: SuggestedCourse) {
+    setLocalCourses((prev) => prev.filter((c) => c.course_id !== course.course_id))
+    setExcludedCourseIds((prev) => [...prev, course.course_id])
   }
 
   async function handleOpenSwap(course: SuggestedCourse) {
@@ -134,7 +142,11 @@ export default function AdvisorScreen() {
     setLocalCourses((prev) =>
       prev.map((c) =>
         c.course_id === swapTarget.course_id
-          ? { ...alt, reason: `Swapped in for ${swapTarget.course_code}`, swappable: true }
+          ? {
+              ...alt,
+              reason: `Swapped in for ${swapTarget.course_code}`,
+              swappable: true
+            }
           : c
       )
     )
@@ -225,22 +237,57 @@ export default function AdvisorScreen() {
                   key={course.course_id}
                   course={course}
                   colors={colors}
-                  onSwap={
-                    course.swappable
-                      ? () => handleOpenSwap(course)
-                      : undefined
-                  }
+                  onSwap={course.swappable ? () => handleOpenSwap(course) : undefined}
+                  onRemove={() => handleRemoveCourse(course)}
                 />
               ))}
             </Collapsible>
           ))}
 
+          {/* Excluded courses info strip */}
+          {excludedCourseIds.length > 0 && (
+            <View style={styles.excludedStrip}>
+              <ThemedText style={styles.excludedStripText}>
+                {excludedCourseIds.length} course
+                {excludedCourseIds.length !== 1 ? "s" : ""} removed — tap Re-advise to get
+                an updated plan
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Notes field (editable in results phase) */}
+          <TextInput
+            style={[
+              styles.textAreaSmall,
+              {
+                color: colors.text,
+                borderColor: colors.icon,
+                backgroundColor: "#f5f5f5"
+              }
+            ]}
+            placeholder="Add notes for Re-advise (e.g. replace with something lighter)"
+            placeholderTextColor={colors.icon}
+            multiline
+            numberOfLines={2}
+            value={description}
+            onChangeText={setDescription}
+          />
+
           {/* Actions */}
           <TouchableOpacity
             style={[styles.secondaryBtn, { borderColor: colors.tint }]}
-            onPress={() => setPhase("form")}
+            onPress={handleGenerate}
           >
             <ThemedText style={[styles.secondaryBtnText, { color: colors.tint }]}>
+              Re-advise
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.secondaryBtn, { borderColor: colors.icon }]}
+            onPress={() => setPhase("form")}
+          >
+            <ThemedText style={[styles.secondaryBtnText, { color: colors.icon }]}>
               Adjust &amp; Regenerate
             </ThemedText>
           </TouchableOpacity>
@@ -318,106 +365,112 @@ export default function AdvisorScreen() {
 
   // ── Form ───────────────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
     >
-      <ThemedText type="title" style={styles.formTitle}>
-        Plan a Semester
-      </ThemedText>
-
-      {/* Error */}
-      {error && (
-        <View style={styles.errorBanner}>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-        </View>
-      )}
-
-      {/* Semester picker */}
-      <ThemedText type="defaultSemiBold" style={styles.label}>
-        Semester
-      </ThemedText>
-      <View style={styles.pillRow}>
-        {(["Fall", "Spring", "Summer"] as SemesterType[]).map((s) => (
-          <TouchableOpacity
-            key={s}
-            style={[
-              styles.pill,
-              {
-                backgroundColor: semester === s ? colors.tint : "transparent",
-                borderColor: colors.tint
-              }
-            ]}
-            onPress={() => handleSemesterChange(s)}
-          >
-            <ThemedText
-              style={[styles.pillText, { color: semester === s ? "#fff" : colors.tint }]}
-            >
-              {s}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Max credits */}
-      <ThemedText type="defaultSemiBold" style={styles.label}>
-        Max Credits
-      </ThemedText>
-      <View style={styles.pillRow}>
-        {creditOptions.map((n) => (
-          <TouchableOpacity
-            key={n}
-            style={[
-              styles.pill,
-              {
-                backgroundColor: maxCredits === n ? colors.tint : "transparent",
-                borderColor: colors.tint
-              }
-            ]}
-            onPress={() => setMaxCredits(n)}
-          >
-            <ThemedText
-              style={[
-                styles.pillText,
-                { color: maxCredits === n ? "#fff" : colors.tint }
-              ]}
-            >
-              {n}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Description */}
-      <ThemedText type="defaultSemiBold" style={styles.label}>
-        Notes (optional)
-      </ThemedText>
-      <TextInput
-        style={[
-          styles.textArea,
-          {
-            color: colors.text,
-            borderColor: colors.icon,
-            backgroundColor: "#f5f5f5"
-          }
-        ]}
-        placeholder="e.g. I want to focus on math this semester, or avoid early morning courses."
-        placeholderTextColor={colors.icon}
-        multiline
-        numberOfLines={4}
-        value={description}
-        onChangeText={setDescription}
-      />
-
-      <TouchableOpacity
-        style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
-        onPress={handleGenerate}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <ThemedText style={styles.primaryBtnText}>Generate Plan</ThemedText>
-      </TouchableOpacity>
-    </ScrollView>
+        <ThemedText type="title" style={styles.formTitle}>
+          Plan a Semester
+        </ThemedText>
+
+        {/* Error */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          </View>
+        )}
+
+        {/* Semester picker */}
+        <ThemedText type="defaultSemiBold" style={styles.label}>
+          Semester
+        </ThemedText>
+        <View style={styles.pillRow}>
+          {(["Fall", "Spring", "Summer"] as SemesterType[]).map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: semester === s ? colors.tint : "transparent",
+                  borderColor: colors.tint
+                }
+              ]}
+              onPress={() => handleSemesterChange(s)}
+            >
+              <ThemedText
+                style={[
+                  styles.pillText,
+                  { color: semester === s ? "#fff" : colors.tint }
+                ]}
+              >
+                {s}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Max credits */}
+        <ThemedText type="defaultSemiBold" style={styles.label}>
+          Max Credits
+        </ThemedText>
+        <View style={styles.pillRow}>
+          {creditOptions.map((n) => (
+            <TouchableOpacity
+              key={n}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: maxCredits === n ? colors.tint : "transparent",
+                  borderColor: colors.tint
+                }
+              ]}
+              onPress={() => setMaxCredits(n)}
+            >
+              <ThemedText
+                style={[
+                  styles.pillText,
+                  { color: maxCredits === n ? "#fff" : colors.tint }
+                ]}
+              >
+                {n}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Description */}
+        <ThemedText type="defaultSemiBold" style={styles.label}>
+          Notes (optional)
+        </ThemedText>
+        <TextInput
+          style={[
+            styles.textArea,
+            {
+              color: colors.text,
+              borderColor: colors.icon,
+              backgroundColor: "#f5f5f5"
+            }
+          ]}
+          placeholder="e.g. I want to focus on math this semester, or avoid early morning courses."
+          placeholderTextColor={colors.icon}
+          multiline
+          numberOfLines={4}
+          value={description}
+          onChangeText={setDescription}
+        />
+
+        <TouchableOpacity
+          style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
+          onPress={handleGenerate}
+        >
+          <ThemedText style={styles.primaryBtnText}>Generate Plan</ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
@@ -425,11 +478,13 @@ export default function AdvisorScreen() {
 function CourseCard({
   course,
   colors,
-  onSwap
+  onSwap,
+  onRemove
 }: {
   course: SuggestedCourse
   colors: (typeof Colors)[keyof typeof Colors]
   onSwap?: () => void
+  onRemove?: () => void
 }) {
   return (
     <View style={[styles.courseCard, { borderColor: colors.icon + "33" }]}>
@@ -448,6 +503,16 @@ function CourseCard({
             >
               <ThemedText style={[styles.swapBtnText, { color: colors.tint }]}>
                 Swap
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          {onRemove && (
+            <TouchableOpacity
+              style={[styles.swapBtn, { borderColor: "#ef4444" }]}
+              onPress={onRemove}
+            >
+              <ThemedText style={[styles.swapBtnText, { color: "#ef4444" }]}>
+                Remove
               </ThemedText>
             </TouchableOpacity>
           )}
@@ -623,6 +688,26 @@ const styles = StyleSheet.create({
   swapBtnText: {
     fontSize: 12,
     fontWeight: "600"
+  },
+  // Excluded strip
+  excludedStrip: {
+    backgroundColor: "#fef3c7",
+    borderRadius: 10,
+    padding: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f59e0b"
+  },
+  excludedStripText: {
+    color: "#92400e",
+    fontSize: 13
+  },
+  textAreaSmall: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: "top",
+    fontSize: 13
   },
   // Swap modal
   modalOverlay: {

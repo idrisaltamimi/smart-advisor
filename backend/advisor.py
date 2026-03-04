@@ -485,6 +485,11 @@ def generate_plan(
     student_context = build_student_context(student)
     available_courses = build_available_courses(student, student_context)
 
+    # Filter out courses the user has explicitly excluded
+    if body.exclude_course_ids:
+        excluded_set = set(body.exclude_course_ids)
+        available_courses = [c for c in available_courses if c["course_id"] not in excluded_set]
+
     if not available_courses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
