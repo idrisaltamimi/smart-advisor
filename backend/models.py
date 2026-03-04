@@ -97,7 +97,7 @@ class Semester(Base):
     semester_gpa   = Column(Numeric(3, 2))
 
     student         = relationship("Student", back_populates="semesters")
-    semester_courses = relationship("SemesterCourse", back_populates="semester")
+    semester_courses = relationship("SemesterCourse", back_populates="semester", order_by="SemesterCourse.course_id")
 
 
 class SemesterCourse(Base):

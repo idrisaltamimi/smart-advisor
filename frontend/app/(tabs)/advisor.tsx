@@ -32,7 +32,7 @@ type Phase = "form" | "loading" | "results" | "success"
 const SUMMER_CAP = 9
 const MAX_CREDITS = 19
 
-const ALL_CREDIT_OPTIONS = [3, 6, 9, 12, 15, 18, 19]
+const ALL_CREDIT_OPTIONS = [12, 15, 18, 19]
 const SUMMER_CREDIT_OPTIONS = [3, 6, 9]
 
 export default function AdvisorScreen() {
