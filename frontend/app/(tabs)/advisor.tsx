@@ -551,6 +551,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 72,
+    lineHeight: 90,
     color: "#22c55e"
   },
   successTitle: {
@@ -594,7 +595,8 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 16
+    fontSize: 16,
+    paddingInline: 32
   },
   secondaryBtn: {
     borderRadius: 12,
@@ -678,7 +680,7 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 11,
-    marginTop: 1,
+    marginTop: 1
   },
   creditsPill: {
     borderRadius: 8,

@@ -86,8 +86,17 @@ def _get_openai() -> OpenAI:
 # ── GPA helpers ───────────────────────────────────────────────────────────────
 
 GRADE_TO_GPA = {
-    "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7,
-    "C+": 2.3, "C": 2.0, "C-": 1.7, "D+": 1.3, "D": 1.0, "F": 0.0,
+    "A": 4.0,
+    "A-": 3.7,
+    "B+": 3.3,
+    "B": 3.0,
+    "B-": 2.7,
+    "C+": 2.3,
+    "C": 2.0,
+    "C-": 1.7,
+    "D+": 1.3,
+    "D": 1.0,
+    "F": 0.0,
 }
 
 
@@ -141,16 +150,22 @@ def compute_credit_cap(cgpa, semester: str) -> int:
     return 19 if cgpa >= Decimal("3.0") else 15
 
 
-def build_student_context(student: models.Student) -> dict:
+def build_student_context(student: models.Student, is_progress=False) -> dict:
     completed_course_ids: set[str] = set()
     completed_course_codes: set[str] = set()
+
+    courses_status = (
+        ("completed", "enrolled")
+        if is_progress
+        else ("completed", "enrolled", "planned")
+    )
 
     for semester in student.semesters:
         for semester_course in semester.semester_courses:
             # Exclude F-graded completed courses so they re-appear as available
             if semester_course.status == "completed" and semester_course.grade == "F":
                 continue
-            if semester_course.status in ("completed", "enrolled", "planned"):
+            if semester_course.status in courses_status:
                 completed_course_ids.add(semester_course.course_id)
                 completed_course_codes.add(semester_course.course.code)
 
@@ -197,10 +212,14 @@ def build_available_courses(
 
     # 3a — Collect all major course IDs for unlock-scope calculation
     all_major_course_ids: set[str] = set()
+    all_major_requirement_course_ids: set[str] = set()
     for requirement in student.major.requirements:
         for requirement_course in requirement.requirement_courses:
             all_major_course_ids.add(requirement_course.course_id)
+            if requirement.name == "Major Requirements":
+                all_major_requirement_course_ids.add(requirement_course.course_id)
     remaining_major_course_ids = all_major_course_ids - completed_course_ids
+    remaining_major_requirement_course_ids = all_major_requirement_course_ids - completed_course_ids
 
     # Determine the major's department prefix(es) from "Major Requirements" / "Major Electives"
     major_dept_prefixes: set[str] = set()
@@ -257,7 +276,9 @@ def build_available_courses(
             avg_difficulty = None
             if course.feedbacks:
                 avg_difficulty = round(
-                    sum(f.difficulty_rating for f in course.feedbacks) / len(course.feedbacks), 1
+                    sum(f.difficulty_rating for f in course.feedbacks)
+                    / len(course.feedbacks),
+                    1,
                 )
 
             # Tag non-major-category courses that share the major's department prefix
@@ -267,10 +288,17 @@ def build_available_courses(
             )
 
             # 3c — Unlock count: how many not-yet-completed major courses does this unlock?
-            unlock_count = sum(
+            #       Split into requirement-unlocks vs elective-unlocks for priority.
+            unlock_requirements_count = sum(
+                1
+                for prereq_link in course.is_prerequisite_for
+                if prereq_link.course_id in remaining_major_requirement_course_ids
+            )
+            unlock_count = unlock_requirements_count + sum(
                 1
                 for prereq_link in course.is_prerequisite_for
                 if prereq_link.course_id in remaining_major_course_ids
+                and prereq_link.course_id not in remaining_major_requirement_course_ids
             )
 
             # 3c — Credit fit: will taking this course leave an exact-fillable gap?
@@ -322,20 +350,23 @@ def build_available_courses(
                     "requirement_category": requirement.name,
                     "prerequisites": prereq_codes,
                     "unlock_count": unlock_count,
+                    "unlock_requirements_count": unlock_requirements_count,
                     "credit_fit": credit_fit,
                     "is_major_dept": is_major_dept,
                     "avg_difficulty": avg_difficulty,
                 }
             )
 
-    # 3d — Sort: path-openers (unlock_count > 0) always beat zero-unlock courses;
-    #           within each unlock tier: Major Requirements first, then Major Electives,
-    #           then same-dept gateway courses, then others;
-    #           then prefer higher unlock counts within the same category.
+    # 3d — Sort: three unlock tiers, then category, then unlock count.
+    #   Tier 0: unlocks ≥1 Major Requirement  (highest urgency)
+    #   Tier 1: unlocks ≥1 Major Elective only
+    #   Tier 2: unlocks nothing
+    #   Within each tier: Major Requirements > Major Electives / MAJOR-DEPT > others.
     CATEGORY_PRIORITY = {"Major Requirements": 0, "Major Electives": 1}
     available_courses.sort(
         key=lambda course_entry: (
-            0 if course_entry["unlock_count"] > 0 else 1,  # path-openers first
+            0 if course_entry["unlock_requirements_count"] > 0
+            else (1 if course_entry["unlock_count"] > 0 else 2),
             CATEGORY_PRIORITY.get(
                 course_entry["requirement_category"],
                 (
@@ -433,11 +464,15 @@ def build_system_prompt(
         available_course_lines.append(f"  [{category}]")
         for course_entry in category_courses:
             credit_fit_tag = " [AVOID]" if course_entry["credit_fit"] == "AVOID" else ""
-            unlock_count_tag = (
-                f" (unlocks {course_entry['unlock_count']})"
-                if course_entry["unlock_count"] > 0
-                else ""
-            )
+            if course_entry["unlock_requirements_count"] > 0:
+                unlock_count_tag = (
+                    f" (unlocks {course_entry['unlock_requirements_count']} requirement"
+                    f"{'+' + str(course_entry['unlock_count'] - course_entry['unlock_requirements_count']) + ' elective' if course_entry['unlock_count'] > course_entry['unlock_requirements_count'] else ''})"
+                )
+            elif course_entry["unlock_count"] > 0:
+                unlock_count_tag = f" (unlocks {course_entry['unlock_count']} elective)"
+            else:
+                unlock_count_tag = ""
             major_dept_tag = (
                 " [MAJOR-DEPT]" if course_entry.get("is_major_dept") else ""
             )
@@ -487,9 +522,12 @@ Rules:
 - Total credits of suggested courses MUST NOT exceed {max_credits}.
 - Do NOT suggest any course whose name contains the word "project" (case-insensitive) and has 6 credits, unless the student's total credits completed is at least 90. Identify such courses yourself from the list above.
 - Use exact course_id values from the list above.
-- UNLOCK PRIORITY (highest importance): Courses with unlock_count > 0 open the path to major courses — the primary goal. ALWAYS prefer them over courses with unlock_count = 0, even if the unlocking course belongs to a lower-priority category.
+- UNLOCK PRIORITY (highest importance): Courses that open paths to other courses must be prioritised above all else. There are two tiers:
+  1. **Unlocks Major Requirements** — tagged "(unlocks N requirement)": HIGHEST priority. These are critical bottlenecks; always prefer them over everything else.
+  2. **Unlocks Major Electives only** — tagged "(unlocks N elective)": High priority, but slightly below tier 1.
+  Never pick a zero-unlock course over a course from either unlock tier.
 - Courses tagged [MAJOR-DEPT] share the same department prefix as the major's core courses (e.g. COMP101 for a CS major). They are gateway courses that directly enable major progression — treat them with the same urgency as Major Requirements regardless of which requirement category they appear under.
-- Courses are listed in priority order: path-openers first, then Major Requirements, then Major Electives / [MAJOR-DEPT] courses, then others.
+- Courses are listed in priority order: requirement-unlockers first, then elective-unlockers, then Major Requirements, then Major Electives / [MAJOR-DEPT] courses, then others.
 - Do NOT suggest courses marked [AVOID] unless it is the student's only option in that requirement category — these cause a credit gap that can never be filled exactly.
 - Prefer higher-credit courses over lower-credit courses when both satisfy the same requirement.
 - Spread courses across different requirement categories when possible (diversity).
@@ -530,7 +568,9 @@ def generate_plan(
     # Filter out courses the user has explicitly excluded
     if body.exclude_course_ids:
         excluded_set = set(body.exclude_course_ids)
-        available_courses = [c for c in available_courses if c["course_id"] not in excluded_set]
+        available_courses = [
+            c for c in available_courses if c["course_id"] not in excluded_set
+        ]
 
     if not available_courses:
         raise HTTPException(
@@ -1011,7 +1051,7 @@ def get_progress(
             status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
         )
 
-    student_context = build_student_context(student)
+    student_context = build_student_context(student, True)
 
     credits_completed = sum(
         r["credits_completed"] for r in student_context["requirement_progress"]
@@ -1094,9 +1134,7 @@ def get_progress(
     )
 
 
-@router.post(
-    "/semesters/{semester_id}/feedback", response_model=SubmitFeedbackResponse
-)
+@router.post("/semesters/{semester_id}/feedback", response_model=SubmitFeedbackResponse)
 def submit_feedback(
     semester_id: str,
     body: SubmitFeedbackRequest,
