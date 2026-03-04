@@ -267,3 +267,33 @@ class UpdateSemesterStatusResponse(BaseModel):
 
 class CancelSemesterResponse(BaseModel):
     cancelled: bool = True
+
+
+# ── Complete Semester ──────────────────────────────────────────────────────────
+
+VALID_GRADES = Literal["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F"]
+
+
+class CourseGradeInput(BaseModel):
+    course_id: str
+    grade: VALID_GRADES
+
+
+class FailedCourseInfo(BaseModel):
+    course_id: str
+    course_code: str
+    course_name: str
+
+
+class CompleteSemesterRequest(BaseModel):
+    course_grades: list[CourseGradeInput]
+
+
+class CompleteSemesterResponse(BaseModel):
+    semester_id: str
+    semester_gpa: float
+    new_cgpa: float
+    failed_courses: list[FailedCourseInfo]
+    cancelled_semester_count: int
+    warning_type: Optional[Literal["priority_warning", "plans_cancelled"]] = None
+    warning_message: Optional[str] = None

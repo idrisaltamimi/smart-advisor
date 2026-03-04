@@ -245,3 +245,40 @@ export function apiCancelSemester(
     token
   )
 }
+
+// ── Complete Semester ─────────────────────────────────────────────────────────
+
+export type GradeValue = 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'F'
+
+export interface CourseGradeInput {
+  course_id: string
+  grade: GradeValue
+}
+
+export interface FailedCourseInfo {
+  course_id: string
+  course_code: string
+  course_name: string
+}
+
+export interface CompleteSemesterResponse {
+  semester_id: string
+  semester_gpa: number
+  new_cgpa: number
+  failed_courses: FailedCourseInfo[]
+  cancelled_semester_count: number
+  warning_type: 'priority_warning' | 'plans_cancelled' | null
+  warning_message: string | null
+}
+
+export function apiCompleteSemester(
+  semester_id: string,
+  course_grades: CourseGradeInput[],
+  token: string
+): Promise<CompleteSemesterResponse> {
+  return request<CompleteSemesterResponse>(
+    `/advisor/semesters/${semester_id}/complete`,
+    { method: 'POST', body: JSON.stringify({ course_grades }) },
+    token
+  )
+}

@@ -18,8 +18,11 @@ from backend.schema import (
     AlternativesRequest,
     AlternativesResponse,
     CancelSemesterResponse,
+    CompleteSemesterRequest,
+    CompleteSemesterResponse,
     EnrollRequest,
     EnrollResponse,
+    FailedCourseInfo,
     GenerateRequest,
     GenerateResponse,
     SemesterCourseDetail,
@@ -73,6 +76,21 @@ def _get_openai() -> OpenAI:
     return OpenAI(api_key=key)
 
 
+# ── GPA helpers ───────────────────────────────────────────────────────────────
+
+GRADE_TO_GPA = {
+    "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7,
+    "C+": 2.3, "C": 2.0, "C-": 1.7, "D+": 1.3, "D": 1.0, "F": 0.0,
+}
+
+
+def _calculate_gpa(courses_with_grades: list[tuple[str, int]]) -> float:
+    """courses_with_grades = [(grade_letter, credits), ...]"""
+    total_points = sum(GRADE_TO_GPA[g] * c for g, c in courses_with_grades)
+    total_credits = sum(c for _, c in courses_with_grades)
+    return round(total_points / total_credits, 2) if total_credits else 0.0
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -122,6 +140,9 @@ def build_student_context(student: models.Student) -> dict:
 
     for semester in student.semesters:
         for semester_course in semester.semester_courses:
+            # Exclude F-graded completed courses so they re-appear as available
+            if semester_course.status == "completed" and semester_course.grade == "F":
+                continue
             if semester_course.status in ("completed", "enrolled", "planned"):
                 completed_course_ids.add(semester_course.course_id)
                 completed_course_codes.add(semester_course.course.code)
@@ -772,6 +793,32 @@ def update_semester_status(
             detail=f"Cannot transition semester from '{current_status}' to 'completed'.",
         )
 
+    # When activating (planned → enrolled), verify all prerequisites are satisfied.
+    # A prerequisite is satisfied only if it has a completed SemesterCourse with grade != "F".
+    if body.status == "enrolled":
+        satisfied_course_ids: set[str] = set()
+        for s in student.semesters:
+            for sc in s.semester_courses:
+                if sc.status == "completed" and sc.grade != "F":
+                    satisfied_course_ids.add(sc.course_id)
+
+        blocking: list[str] = []
+        for sc in semester.semester_courses:
+            course = sc.course
+            for prereq_link in course.prerequisites:
+                if prereq_link.prerequisite_course_id not in satisfied_course_ids:
+                    blocking.append(
+                        f"{prereq_link.prerequisite_course.code} (required by {course.code})"
+                    )
+        if blocking:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Cannot activate semester: the following prerequisite(s) are not yet satisfied: "
+                    + "; ".join(blocking)
+                ),
+            )
+
     # Apply transition atomically
     for semester_course in semester.semester_courses:
         semester_course.status = body.status
@@ -783,6 +830,151 @@ def update_semester_status(
         semester_id=semester_id,
         new_status=new_status,
         updated_count=len(semester.semester_courses),
+    )
+
+
+@router.post(
+    "/semesters/{semester_id}/complete", response_model=CompleteSemesterResponse
+)
+def complete_semester(
+    semester_id: str,
+    body: CompleteSemesterRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    semester = (
+        db.query(models.Semester)
+        .filter(
+            models.Semester.id == semester_id,
+            models.Semester.student_id == student.id,
+        )
+        .first()
+    )
+    if not semester:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found"
+        )
+
+    current_status = _compute_semester_status(semester.semester_courses)
+    if current_status != "current":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Only an enrolled ('current') semester can be completed; current status is '{current_status}'.",
+        )
+
+    # Validate that course_grades covers exactly the semester's courses
+    semester_course_ids = {sc.course_id for sc in semester.semester_courses}
+    input_course_ids = {cg.course_id for cg in body.course_grades}
+    if semester_course_ids != input_course_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="course_grades must contain exactly the courses in this semester.",
+        )
+
+    # Build grade lookup and save grades
+    grade_map: dict[str, str] = {cg.course_id: cg.grade for cg in body.course_grades}
+    for sc in semester.semester_courses:
+        sc.grade = grade_map[sc.course_id]
+        sc.status = "completed"
+
+    # Calculate semester GPA
+    semester_courses_with_grades = [
+        (grade_map[sc.course_id], sc.course.credits) for sc in semester.semester_courses
+    ]
+    semester_gpa = _calculate_gpa(semester_courses_with_grades)
+    semester.semester_gpa = semester_gpa
+
+    # Recalculate cumulative GPA from ALL completed semesters (including this one)
+    all_completed_grade_credits: list[tuple[str, int]] = []
+    for s in student.semesters:
+        for sc in s.semester_courses:
+            if sc.status == "completed" and sc.grade is not None:
+                all_completed_grade_credits.append((sc.grade, sc.course.credits))
+    new_cgpa = _calculate_gpa(all_completed_grade_credits)
+    student.cgpa = new_cgpa
+
+    db.commit()
+
+    # Collect failed courses
+    failed_courses: list[FailedCourseInfo] = [
+        FailedCourseInfo(
+            course_id=sc.course_id,
+            course_code=sc.course.code,
+            course_name=sc.course.name,
+        )
+        for sc in semester.semester_courses
+        if sc.grade == "F"
+    ]
+
+    cancelled_semester_count = 0
+    warning_type = None
+    warning_message = None
+
+    if failed_courses:
+        failed_course_ids = {f.course_id for f in failed_courses}
+
+        # Find all courses that have any failed course as a prerequisite
+        courses_blocked_by_failure: set[str] = set()
+        for prereq_link in (
+            db.query(models.Prerequisite)
+            .filter(models.Prerequisite.prerequisite_course_id.in_(failed_course_ids))
+            .all()
+        ):
+            courses_blocked_by_failure.add(prereq_link.course_id)
+
+        # Check if any planned semester contains those courses
+        planned_semesters_with_conflicts: list[models.Semester] = []
+        for s in student.semesters:
+            sem_status = _compute_semester_status(s.semester_courses)
+            if sem_status == "planned":
+                for sc in s.semester_courses:
+                    if sc.course_id in courses_blocked_by_failure:
+                        planned_semesters_with_conflicts.append(s)
+                        break
+
+        if planned_semesters_with_conflicts:
+            # Case 2 — cancel all planned semesters
+            all_planned: list[models.Semester] = [
+                s
+                for s in student.semesters
+                if _compute_semester_status(s.semester_courses) == "planned"
+            ]
+            for s in all_planned:
+                for sc in list(s.semester_courses):
+                    db.delete(sc)
+                db.delete(s)
+            cancelled_semester_count = len(all_planned)
+            db.commit()
+
+            failed_names = ", ".join(f.course_code for f in failed_courses)
+            warning_type = "plans_cancelled"
+            warning_message = (
+                f"Your future planned semesters have been cancelled because "
+                f"{failed_names} are prerequisites for courses in those plans. "
+                f"Please use the Advisor to re-plan your future semesters."
+            )
+        else:
+            # Case 1 — warn but keep plans
+            warning_type = "priority_warning"
+            warning_message = (
+                "You have failed courses that must be retaken. "
+                "They will be prioritized in your next semester plan."
+            )
+
+    return CompleteSemesterResponse(
+        semester_id=semester_id,
+        semester_gpa=semester_gpa,
+        new_cgpa=float(new_cgpa),
+        failed_courses=failed_courses,
+        cancelled_semester_count=cancelled_semester_count,
+        warning_type=warning_type,
+        warning_message=warning_message,
     )
 
 

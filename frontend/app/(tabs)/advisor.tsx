@@ -237,7 +237,7 @@ export default function AdvisorScreen() {
                   key={course.course_id}
                   course={course}
                   colors={colors}
-                  onSwap={course.swappable ? () => handleOpenSwap(course) : undefined}
+                  onSwap={() => handleOpenSwap(course)}
                   onRemove={() => handleRemoveCourse(course)}
                 />
               ))}
