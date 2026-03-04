@@ -190,6 +190,7 @@ class SuggestedCourse(BaseModel):
     requirement_category: str
     reason: str
     swappable: bool = False
+    avg_difficulty: Optional[float] = None
 
 class GenerateResponse(BaseModel):
     suggested_courses: list[SuggestedCourse]
@@ -297,3 +298,49 @@ class CompleteSemesterResponse(BaseModel):
     cancelled_semester_count: int
     warning_type: Optional[Literal["priority_warning", "plans_cancelled"]] = None
     warning_message: Optional[str] = None
+
+
+# ── Progress ───────────────────────────────────────────────────────────────────
+
+class ProgressCourseItem(BaseModel):
+    course_code: str
+    course_name: str
+    credits: int
+    status: str
+
+
+class ProgressSemesterSummary(BaseModel):
+    semester_id: str
+    semester_label: str
+    total_credits: int
+    courses: list[ProgressCourseItem]
+
+
+class RequirementProgressItem(BaseModel):
+    name: str
+    credits_completed: int
+    credits_required: int
+
+
+class ProgressResponse(BaseModel):
+    cgpa: Optional[float] = None
+    credits_completed: int
+    credits_required: int
+    requirement_progress: list[RequirementProgressItem]
+    active_semester: Optional[ProgressSemesterSummary] = None
+    next_planned_semester: Optional[ProgressSemesterSummary] = None
+
+
+# ── Course Feedback ────────────────────────────────────────────────────────────
+
+class FeedbackItem(BaseModel):
+    course_id: str
+    difficulty_rating: int  # 1–5
+
+
+class SubmitFeedbackRequest(BaseModel):
+    feedback: list[FeedbackItem]
+
+
+class SubmitFeedbackResponse(BaseModel):
+    submitted_count: int

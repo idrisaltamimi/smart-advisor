@@ -18,11 +18,14 @@ import { useColorScheme } from '@/hooks/use-color-scheme'
 import {
   CompleteSemesterResponse,
   CourseGradeInput,
+  FeedbackItem,
   GradeValue,
   SemesterDetail,
+  SemesterCourseDetail,
   apiCancelSemester,
   apiCompleteSemester,
   apiGetSemesters,
+  apiSubmitFeedback,
   apiUpdateSemesterStatus,
 } from '@/services/api'
 
@@ -53,6 +56,12 @@ export default function SemesterHistoryScreen() {
   const [selectedGrades, setSelectedGrades] = useState<Record<string, GradeValue>>({})
   const [completing, setCompleting] = useState(false)
   const [completionResult, setCompletionResult] = useState<CompleteSemesterResponse | null>(null)
+
+  // Feedback modal state
+  const [feedbackSemesterId, setFeedbackSemesterId] = useState<string | null>(null)
+  const [feedbackCourses, setFeedbackCourses] = useState<SemesterCourseDetail[]>([])
+  const [difficultyRatings, setDifficultyRatings] = useState<Record<string, number>>({})
+  const [submittingFeedback, setSubmittingFeedback] = useState(false)
 
   const fetchSemesters = useCallback(async () => {
     if (!token) return
@@ -104,11 +113,15 @@ export default function SemesterHistoryScreen() {
       course_id: c.course_id,
       grade: selectedGrades[c.course_id],
     }))
+    const semesterSnapshot = gradeModalSemester
     setCompleting(true)
     try {
-      const result = await apiCompleteSemester(gradeModalSemester.id, course_grades, token)
+      const result = await apiCompleteSemester(semesterSnapshot.id, course_grades, token)
       closeGradeModal()
       setCompletionResult(result)
+      // Stash courses for the feedback modal
+      setFeedbackSemesterId(semesterSnapshot.id)
+      setFeedbackCourses(semesterSnapshot.courses)
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Failed to complete semester')
     } finally {
@@ -118,6 +131,39 @@ export default function SemesterHistoryScreen() {
 
   function handleDismissResult() {
     setCompletionResult(null)
+    // Open feedback modal if we have courses to rate
+    if (feedbackSemesterId && feedbackCourses.length > 0) {
+      setDifficultyRatings({})
+    } else {
+      fetchSemesters()
+    }
+  }
+
+  async function handleSubmitFeedback() {
+    if (!token || !feedbackSemesterId) return
+    setSubmittingFeedback(true)
+    try {
+      const feedback: FeedbackItem[] = Object.entries(difficultyRatings).map(
+        ([course_id, difficulty_rating]) => ({ course_id, difficulty_rating })
+      )
+      if (feedback.length > 0) {
+        await apiSubmitFeedback(feedbackSemesterId, feedback, token)
+      }
+    } catch {
+      // Feedback errors are non-critical — silently ignore
+    } finally {
+      setSubmittingFeedback(false)
+      setFeedbackSemesterId(null)
+      setFeedbackCourses([])
+      setDifficultyRatings({})
+      fetchSemesters()
+    }
+  }
+
+  function handleSkipFeedback() {
+    setFeedbackSemesterId(null)
+    setFeedbackCourses([])
+    setDifficultyRatings({})
     fetchSemesters()
   }
 
@@ -328,6 +374,88 @@ export default function SemesterHistoryScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <ThemedText style={styles.confirmBtnText}>Confirm & Complete</ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Difficulty Feedback Modal ── */}
+      <Modal
+        visible={!completionResult && !!feedbackSemesterId && feedbackCourses.length > 0}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleSkipFeedback}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="title" style={styles.modalTitle}>
+              Rate Difficulty
+            </ThemedText>
+            <TouchableOpacity onPress={handleSkipFeedback} style={styles.modalCloseBtn}>
+              <ThemedText style={[styles.modalCloseBtnText, { color: colors.icon }]}>
+                Skip
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          <ThemedText style={[styles.modalSubtitle, { color: colors.icon }]}>
+            How difficult was each course? (1 = easy, 5 = very hard)
+          </ThemedText>
+
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+            {feedbackCourses.map(course => (
+              <View key={course.course_id} style={[styles.gradeRow, { borderColor: colors.icon + '33' }]}>
+                <View style={styles.gradeRowLeft}>
+                  <ThemedText style={styles.gradeRowCode}>{course.course_code}</ThemedText>
+                  <ThemedText style={[styles.gradeRowName, { color: colors.icon }]} numberOfLines={2}>
+                    {course.course_name}
+                  </ThemedText>
+                </View>
+                <View style={styles.chipsContent}>
+                  {[1, 2, 3, 4, 5].map(star => {
+                    const isSelected = difficultyRatings[course.course_id] === star
+                    return (
+                      <TouchableOpacity
+                        key={star}
+                        style={[
+                          styles.gradeChip,
+                          isSelected
+                            ? { backgroundColor: colors.tint, borderColor: colors.tint }
+                            : { borderColor: colors.icon + '55' },
+                        ]}
+                        onPress={() =>
+                          setDifficultyRatings(prev => ({ ...prev, [course.course_id]: star }))
+                        }
+                      >
+                        <ThemedText
+                          style={[
+                            styles.gradeChipText,
+                            isSelected ? { color: '#fff' } : { color: colors.text },
+                          ]}
+                        >
+                          {star}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[
+                styles.confirmBtn,
+                { backgroundColor: colors.tint, opacity: submittingFeedback ? 0.7 : 1 },
+              ]}
+              onPress={handleSubmitFeedback}
+              disabled={submittingFeedback}
+            >
+              {submittingFeedback ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.confirmBtnText}>Submit Feedback</ThemedText>
               )}
             </TouchableOpacity>
           </View>

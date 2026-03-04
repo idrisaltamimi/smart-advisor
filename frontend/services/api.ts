@@ -118,6 +118,7 @@ export interface SuggestedCourse {
   requirement_category: string
   reason: string
   swappable: boolean
+  avg_difficulty: number | null
 }
 
 export interface GenerateResponse {
@@ -279,6 +280,64 @@ export function apiCompleteSemester(
   return request<CompleteSemesterResponse>(
     `/advisor/semesters/${semester_id}/complete`,
     { method: 'POST', body: JSON.stringify({ course_grades }) },
+    token
+  )
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+
+export interface ProgressCourseItem {
+  course_code: string
+  course_name: string
+  credits: number
+  status: string
+}
+
+export interface ProgressSemesterSummary {
+  semester_id: string
+  semester_label: string
+  total_credits: number
+  courses: ProgressCourseItem[]
+}
+
+export interface RequirementProgressItem {
+  name: string
+  credits_completed: number
+  credits_required: number
+}
+
+export interface ProgressResponse {
+  cgpa: number | null
+  credits_completed: number
+  credits_required: number
+  requirement_progress: RequirementProgressItem[]
+  active_semester: ProgressSemesterSummary | null
+  next_planned_semester: ProgressSemesterSummary | null
+}
+
+export function apiGetProgress(token: string): Promise<ProgressResponse> {
+  return request<ProgressResponse>('/advisor/progress', {}, token)
+}
+
+// ── Course Feedback ───────────────────────────────────────────────────────────
+
+export interface FeedbackItem {
+  course_id: string
+  difficulty_rating: number
+}
+
+export interface SubmitFeedbackResponse {
+  submitted_count: number
+}
+
+export function apiSubmitFeedback(
+  semester_id: string,
+  feedback: FeedbackItem[],
+  token: string
+): Promise<SubmitFeedbackResponse> {
+  return request<SubmitFeedbackResponse>(
+    `/advisor/semesters/${semester_id}/feedback`,
+    { method: 'POST', body: JSON.stringify({ feedback }) },
     token
   )
 }

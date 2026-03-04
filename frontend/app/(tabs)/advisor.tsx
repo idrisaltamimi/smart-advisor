@@ -145,7 +145,8 @@ export default function AdvisorScreen() {
           ? {
               ...alt,
               reason: `Swapped in for ${swapTarget.course_code}`,
-              swappable: true
+              swappable: true,
+              avg_difficulty: null
             }
           : c
       )
@@ -522,6 +523,11 @@ function CourseCard({
       <ThemedText style={[styles.courseReason, { color: colors.icon }]}>
         {course.reason}
       </ThemedText>
+      {course.avg_difficulty != null && (
+        <ThemedText style={[styles.difficultyText, { color: colors.icon }]}>
+          Avg difficulty: {course.avg_difficulty.toFixed(1)}/5
+        </ThemedText>
+      )}
     </View>
   )
 }
@@ -669,6 +675,10 @@ const styles = StyleSheet.create({
   courseReason: {
     fontSize: 12,
     marginTop: 2
+  },
+  difficultyText: {
+    fontSize: 11,
+    marginTop: 1,
   },
   creditsPill: {
     borderRadius: 8,

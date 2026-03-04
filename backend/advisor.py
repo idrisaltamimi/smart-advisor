@@ -23,11 +23,18 @@ from backend.schema import (
     EnrollRequest,
     EnrollResponse,
     FailedCourseInfo,
+    FeedbackItem,
     GenerateRequest,
     GenerateResponse,
+    ProgressCourseItem,
+    ProgressResponse,
+    ProgressSemesterSummary,
+    RequirementProgressItem,
     SemesterCourseDetail,
     SemesterDetail,
     SemestersResponse,
+    SubmitFeedbackRequest,
+    SubmitFeedbackResponse,
     SuggestedCourse,
     UpdateSemesterStatusRequest,
     UpdateSemesterStatusResponse,
@@ -246,6 +253,13 @@ def build_available_courses(
 
             already_added_course_ids.add(course.id)
 
+            # Compute average difficulty from CourseFeedback entries
+            avg_difficulty = None
+            if course.feedbacks:
+                avg_difficulty = round(
+                    sum(f.difficulty_rating for f in course.feedbacks) / len(course.feedbacks), 1
+                )
+
             # Tag non-major-category courses that share the major's department prefix
             is_major_dept = (
                 requirement.name not in ("Major Requirements", "Major Electives")
@@ -310,6 +324,7 @@ def build_available_courses(
                     "unlock_count": unlock_count,
                     "credit_fit": credit_fit,
                     "is_major_dept": is_major_dept,
+                    "avg_difficulty": avg_difficulty,
                 }
             )
 
@@ -426,9 +441,14 @@ def build_system_prompt(
             major_dept_tag = (
                 " [MAJOR-DEPT]" if course_entry.get("is_major_dept") else ""
             )
+            difficulty_tag = (
+                f" [diff:{course_entry['avg_difficulty']}/5]"
+                if course_entry.get("avg_difficulty") is not None
+                else ""
+            )
             available_course_lines.append(
                 f"    {course_entry['code']} | {course_entry['name']} | {course_entry['credits']} cr"
-                f" | id:{course_entry['course_id']}{unlock_count_tag}{major_dept_tag}{credit_fit_tag}"
+                f" | id:{course_entry['course_id']}{unlock_count_tag}{major_dept_tag}{difficulty_tag}{credit_fit_tag}"
             )
     available_courses_block = "\n".join(available_course_lines)
 
@@ -472,7 +492,8 @@ Rules:
 - Courses are listed in priority order: path-openers first, then Major Requirements, then Major Electives / [MAJOR-DEPT] courses, then others.
 - Do NOT suggest courses marked [AVOID] unless it is the student's only option in that requirement category — these cause a credit gap that can never be filled exactly.
 - Prefer higher-credit courses over lower-credit courses when both satisfy the same requirement.
-- Spread courses across different requirement categories when possible (diversity).{summer_rule}{early_semester_rule}
+- Spread courses across different requirement categories when possible (diversity).
+- Courses tagged [diff:X/5] show the average student-reported difficulty. When choosing between otherwise equal options, prefer lower-difficulty courses to keep the overall semester workload manageable — but never sacrifice unlock priority or credit-fit for this.{summer_rule}{early_semester_rule}
 - Call suggest_semester_plan exactly once with your chosen courses. No plain-text response.
 """
 
@@ -569,6 +590,7 @@ def generate_plan(
             requirement_category=db_course["requirement_category"],
             reason=ai_course.get("reason", ""),
             swappable=db_course["unlock_count"] == 0,
+            avg_difficulty=db_course.get("avg_difficulty"),
         )
         suggested.append(course_obj)
         total_credits += actual_credits
@@ -976,6 +998,156 @@ def complete_semester(
         warning_type=warning_type,
         warning_message=warning_message,
     )
+
+
+@router.get("/progress", response_model=ProgressResponse)
+def get_progress(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    student_context = build_student_context(student)
+
+    credits_completed = sum(
+        r["credits_completed"] for r in student_context["requirement_progress"]
+    )
+    credits_required = student.major.total_credits_required
+
+    req_progress = [
+        RequirementProgressItem(
+            name=r["name"],
+            credits_completed=r["credits_completed"],
+            credits_required=r["credits_required"],
+        )
+        for r in student_context["requirement_progress"]
+    ]
+
+    def _parse_sort_key(label: str) -> tuple[int, int]:
+        parts = label.rsplit(" ", 1)
+        if len(parts) == 2:
+            try:
+                return (int(parts[1]), SEMESTER_ORDER.get(parts[0], 0))
+            except ValueError:
+                pass
+        return (0, 0)
+
+    active_semester = None
+    next_planned_semester = None
+
+    for semester in student.semesters:
+        computed_status = _compute_semester_status(semester.semester_courses)
+        if computed_status == "current":
+            courses = [
+                ProgressCourseItem(
+                    course_code=sc.course.code,
+                    course_name=sc.course.name,
+                    credits=sc.course.credits,
+                    status=sc.status,
+                )
+                for sc in semester.semester_courses
+            ]
+            active_semester = ProgressSemesterSummary(
+                semester_id=semester.id,
+                semester_label=semester.semester_label,
+                total_credits=sum(c.credits for c in courses),
+                courses=courses,
+            )
+
+    if active_semester is None:
+        planned_semesters = [
+            s
+            for s in student.semesters
+            if _compute_semester_status(s.semester_courses) == "planned"
+        ]
+        if planned_semesters:
+            earliest = min(
+                planned_semesters, key=lambda s: _parse_sort_key(s.semester_label)
+            )
+            courses = [
+                ProgressCourseItem(
+                    course_code=sc.course.code,
+                    course_name=sc.course.name,
+                    credits=sc.course.credits,
+                    status=sc.status,
+                )
+                for sc in earliest.semester_courses
+            ]
+            next_planned_semester = ProgressSemesterSummary(
+                semester_id=earliest.id,
+                semester_label=earliest.semester_label,
+                total_credits=sum(c.credits for c in courses),
+                courses=courses,
+            )
+
+    return ProgressResponse(
+        cgpa=student_context["cgpa"],
+        credits_completed=credits_completed,
+        credits_required=credits_required,
+        requirement_progress=req_progress,
+        active_semester=active_semester,
+        next_planned_semester=next_planned_semester,
+    )
+
+
+@router.post(
+    "/semesters/{semester_id}/feedback", response_model=SubmitFeedbackResponse
+)
+def submit_feedback(
+    semester_id: str,
+    body: SubmitFeedbackRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    semester = (
+        db.query(models.Semester)
+        .filter(
+            models.Semester.id == semester_id,
+            models.Semester.student_id == student.id,
+        )
+        .first()
+    )
+    if not semester:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found"
+        )
+
+    computed_status = _compute_semester_status(semester.semester_courses)
+    if computed_status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Feedback can only be submitted for completed semesters.",
+        )
+
+    semester_course_ids = {sc.course_id for sc in semester.semester_courses}
+
+    submitted_count = 0
+    for item in body.feedback:
+        if item.course_id not in semester_course_ids:
+            continue
+        if not (1 <= item.difficulty_rating <= 5):
+            continue
+        db.add(
+            models.CourseFeedback(
+                course_id=item.course_id,
+                difficulty_rating=item.difficulty_rating,
+            )
+        )
+        submitted_count += 1
+
+    db.commit()
+
+    return SubmitFeedbackResponse(submitted_count=submitted_count)
 
 
 @router.delete("/semesters/{semester_id}", response_model=CancelSemesterResponse)
