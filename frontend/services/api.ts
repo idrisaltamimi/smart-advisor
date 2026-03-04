@@ -117,6 +117,7 @@ export interface SuggestedCourse {
   credits: number
   requirement_category: string
   reason: string
+  swappable: boolean
 }
 
 export interface GenerateResponse {
@@ -229,6 +230,17 @@ export function apiUpdateSemesterStatus(
   return request<UpdateSemesterStatusResponse>(
     `/advisor/semesters/${semester_id}/status`,
     { method: 'PATCH', body: JSON.stringify({ status }) },
+    token
+  )
+}
+
+export function apiCancelSemester(
+  semester_id: string,
+  token: string
+): Promise<{ cancelled: boolean }> {
+  return request<{ cancelled: boolean }>(
+    `/advisor/semesters/${semester_id}`,
+    { method: 'DELETE' },
     token
   )
 }

@@ -134,7 +134,7 @@ export default function AdvisorScreen() {
     setLocalCourses((prev) =>
       prev.map((c) =>
         c.course_id === swapTarget.course_id
-          ? { ...alt, reason: `Swapped in for ${swapTarget.course_code}` }
+          ? { ...alt, reason: `Swapped in for ${swapTarget.course_code}`, swappable: true }
           : c
       )
     )
@@ -226,7 +226,7 @@ export default function AdvisorScreen() {
                   course={course}
                   colors={colors}
                   onSwap={
-                    course.requirement_category.includes("Elective")
+                    course.swappable
                       ? () => handleOpenSwap(course)
                       : undefined
                   }

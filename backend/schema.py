@@ -188,6 +188,7 @@ class SuggestedCourse(BaseModel):
     credits: int
     requirement_category: str
     reason: str
+    swappable: bool = False
 
 class GenerateResponse(BaseModel):
     suggested_courses: list[SuggestedCourse]
@@ -261,3 +262,7 @@ class UpdateSemesterStatusResponse(BaseModel):
     semester_id: str
     new_status: str
     updated_count: int
+
+
+class CancelSemesterResponse(BaseModel):
+    cancelled: bool = True

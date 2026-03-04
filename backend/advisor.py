@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from datetime import datetime
 from decimal import Decimal
 from functools import reduce
 from math import gcd
@@ -16,6 +17,7 @@ from backend.schema import (
     AlternativeCourse,
     AlternativesRequest,
     AlternativesResponse,
+    CancelSemesterResponse,
     EnrollRequest,
     EnrollResponse,
     GenerateRequest,
@@ -29,6 +31,36 @@ from backend.schema import (
 )
 
 router = APIRouter(prefix="/advisor", tags=["advisor"])
+
+SEMESTER_ORDER = {"Spring": 1, "Summer": 2, "Fall": 3}
+
+
+def _compute_semester_year(student: models.Student, requested_type: str) -> int:
+    """Return the correct calendar year for the next semester of `requested_type`.
+
+    Walks the student's existing semester labels to find the latest one, then
+    advances the year whenever the requested type would fall earlier in the same
+    academic year than the most-recent planned/enrolled/completed semester.
+    """
+    if not student.semesters:
+        return datetime.now().year
+
+    def _parse(label: str) -> tuple[int, int]:
+        parts = label.rsplit(" ", 1)
+        if len(parts) == 2:
+            try:
+                return int(parts[1]), SEMESTER_ORDER.get(parts[0], 0)
+            except ValueError:
+                pass
+        return 0, 0
+
+    latest_label = max((s.semester_label for s in student.semesters), key=_parse)
+    last_type, last_year_str = latest_label.rsplit(" ", 1)
+    last_year = int(last_year_str)
+
+    if SEMESTER_ORDER.get(requested_type, 0) > SEMESTER_ORDER.get(last_type, 0):
+        return last_year
+    return last_year + 1
 
 
 def _get_openai() -> OpenAI:
@@ -486,20 +518,37 @@ def generate_plan(
     )
     ai_suggested_courses: list[dict] = tool_call_arguments.get("courses", [])
 
+    # Build lookups from the DB-sourced available_courses list — never trust AI-returned values
+    # for anything except course_id and reason.
+    course_map = {c["course_id"]: c for c in available_courses}
+
     # Safety loop: filter invalid IDs, enforce credit cap, enforce level restriction
     suggested: list[SuggestedCourse] = []
     total_credits = 0
     for ai_course in ai_suggested_courses:
-        if ai_course["course_id"] not in available_course_ids:
+        course_id = ai_course["course_id"]
+        if course_id not in available_course_ids:
             continue
-        if is_early_semester and _course_level(ai_course.get("course_code", "")) >= 3:
+        db_course = course_map[course_id]
+        if is_early_semester and _course_level(db_course["code"]) >= 3:
             continue
-        if total_credits + ai_course["credits"] > max_credits:
-            break
-        suggested.append(SuggestedCourse(**ai_course))
-        total_credits += ai_course["credits"]
+        actual_credits = db_course["credits"]
+        if total_credits + actual_credits > max_credits:
+            continue
+        course_obj = SuggestedCourse(
+            course_id=course_id,
+            course_code=db_course["code"],
+            course_name=db_course["name"],
+            credits=actual_credits,
+            requirement_category=db_course["requirement_category"],
+            reason=ai_course.get("reason", ""),
+            swappable=db_course["unlock_count"] == 0,
+        )
+        suggested.append(course_obj)
+        total_credits += actual_credits
 
-    semester_label = f"{body.semester} {2026}"
+    semester_year = _compute_semester_year(student, body.semester)
+    semester_label = f"{body.semester} {semester_year}"
 
     return GenerateResponse(
         suggested_courses=suggested,
@@ -730,3 +779,43 @@ def update_semester_status(
         new_status=new_status,
         updated_count=len(semester.semester_courses),
     )
+
+
+@router.delete("/semesters/{semester_id}", response_model=CancelSemesterResponse)
+def cancel_semester(
+    semester_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    student = current_user.student
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No student profile found"
+        )
+
+    semester = (
+        db.query(models.Semester)
+        .filter(
+            models.Semester.id == semester_id,
+            models.Semester.student_id == student.id,
+        )
+        .first()
+    )
+    if not semester:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found"
+        )
+
+    computed_status = _compute_semester_status(semester.semester_courses)
+    if computed_status != "planned":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot cancel a semester with status '{computed_status}'.",
+        )
+
+    for sc in list(semester.semester_courses):
+        db.delete(sc)
+    db.delete(semester)
+    db.commit()
+
+    return CancelSemesterResponse()

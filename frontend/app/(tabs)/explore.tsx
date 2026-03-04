@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -15,9 +16,19 @@ import { useAuth } from '@/context/auth-context'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import {
   SemesterDetail,
+  apiCancelSemester,
   apiGetSemesters,
   apiUpdateSemesterStatus,
 } from '@/services/api'
+
+const SEMESTER_ORDER: Record<string, number> = { Spring: 1, Summer: 2, Fall: 3 }
+
+function semesterSortKey(label: string): [number, number] {
+  const parts = label.split(' ')
+  const type = parts[0]
+  const year = parseInt(parts[parts.length - 1], 10)
+  return [isNaN(year) ? 0 : year, SEMESTER_ORDER[type] ?? 0]
+}
 
 export default function SemesterHistoryScreen() {
   const { token } = useAuth()
@@ -28,6 +39,7 @@ export default function SemesterHistoryScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [transitioningId, setTransitioningId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const fetchSemesters = useCallback(async () => {
     if (!token) return
@@ -61,6 +73,33 @@ export default function SemesterHistoryScreen() {
     } finally {
       setTransitioningId(null)
     }
+  }
+
+  function handleCancel(semesterId: string, label: string) {
+    Alert.alert(
+      'Cancel Semester',
+      `Are you sure you want to cancel "${label}"? This cannot be undone.`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Semester',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return
+            setCancellingId(semesterId)
+            setError(null)
+            try {
+              await apiCancelSemester(semesterId, token)
+              await fetchSemesters()
+            } catch (e: any) {
+              setError(e.message ?? 'Failed to cancel semester')
+            } finally {
+              setCancellingId(null)
+            }
+          },
+        },
+      ]
+    )
   }
 
   const planned = semesters.filter(s => s.status === 'planned')
@@ -115,16 +154,24 @@ export default function SemesterHistoryScreen() {
 
       {planned.length > 0 && (
         <Section title="Planned">
-          {planned.map(sem => (
-            <SemesterCard
-              key={sem.id}
-              semester={sem}
-              colors={colors}
-              transitioning={transitioningId === sem.id}
-              onAction={() => handleTransition(sem.id, 'enrolled')}
-              actionLabel="Activate Semester"
-            />
-          ))}
+          {[...planned]
+            .sort((a, b) => {
+              const [yearA, orderA] = semesterSortKey(a.semester_label)
+              const [yearB, orderB] = semesterSortKey(b.semester_label)
+              return yearA !== yearB ? yearA - yearB : orderA - orderB
+            })
+            .map((sem, index) => (
+              <SemesterCard
+                key={sem.id}
+                semester={sem}
+                colors={colors}
+                transitioning={transitioningId === sem.id}
+                onAction={index === 0 ? () => handleTransition(sem.id, 'enrolled') : undefined}
+                actionLabel={index === 0 ? 'Activate Semester' : undefined}
+                onCancel={() => handleCancel(sem.id, sem.semester_label)}
+                cancelling={cancellingId === sem.id}
+              />
+            ))}
         </Section>
       )}
 
@@ -161,12 +208,16 @@ function SemesterCard({
   transitioning,
   onAction,
   actionLabel,
+  onCancel,
+  cancelling,
 }: {
   semester: SemesterDetail
   colors: (typeof Colors)[keyof typeof Colors]
   transitioning: boolean
   onAction?: () => void
   actionLabel?: string
+  onCancel?: () => void
+  cancelling?: boolean
 }) {
   const badge = getStatusBadge(semester.status)
 
@@ -204,7 +255,7 @@ function SemesterCard({
         </View>
       ))}
 
-      {/* Action button */}
+      {/* Activate button */}
       {onAction && actionLabel && (
         <TouchableOpacity
           style={[
@@ -218,6 +269,21 @@ function SemesterCard({
             <ActivityIndicator color="#fff" />
           ) : (
             <ThemedText style={styles.actionBtnText}>{actionLabel}</ThemedText>
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* Cancel button */}
+      {onCancel && (
+        <TouchableOpacity
+          style={[styles.cancelBtn, { opacity: cancelling ? 0.6 : 1 }]}
+          onPress={onCancel}
+          disabled={cancelling}
+        >
+          {cancelling ? (
+            <ActivityIndicator color="#ef4444" />
+          ) : (
+            <ThemedText style={styles.cancelBtnText}>Cancel Semester</ThemedText>
           )}
         </TouchableOpacity>
       )}
@@ -340,6 +406,19 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  cancelBtn: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+    marginTop: 4,
+  },
+  cancelBtnText: {
+    color: '#ef4444',
     fontWeight: '700',
     fontSize: 15,
   },
