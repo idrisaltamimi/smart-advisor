@@ -25,6 +25,7 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const passwordRef = useRef<TextInput>(null);
 
@@ -48,7 +49,10 @@ export default function SignIn() {
     setPassword('12345678');
   }
 
-  const inputStyle = [styles.input, { borderColor: colors.icon, color: colors.text }];
+  const inputStyle = (field: string) => [
+    styles.input,
+    { borderColor: focusedField === field ? colors.tint : colors.icon + '55', color: colors.text },
+  ];
 
   return (
     <ThemedView style={styles.container}>
@@ -64,7 +68,7 @@ export default function SignIn() {
           </View>
 
           <TextInput
-            style={inputStyle}
+            style={inputStyle('email')}
             placeholder="Email"
             placeholderTextColor={colors.icon}
             autoCapitalize="none"
@@ -74,13 +78,15 @@ export default function SignIn() {
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => passwordRef.current?.focus()}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
             value={email}
             onChangeText={setEmail}
           />
 
           <TextInput
             ref={passwordRef}
-            style={inputStyle}
+            style={inputStyle('password')}
             placeholder="Password"
             placeholderTextColor={colors.icon}
             secureTextEntry
@@ -88,6 +94,8 @@ export default function SignIn() {
             textContentType="password"
             returnKeyType="done"
             onSubmitEditing={handleSignIn}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
             value={password}
             onChangeText={setPassword}
           />

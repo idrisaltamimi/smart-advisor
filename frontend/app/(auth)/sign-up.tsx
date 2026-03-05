@@ -26,6 +26,7 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -49,7 +50,10 @@ export default function SignUp() {
     }
   }
 
-  const inputStyle = [styles.input, { borderColor: colors.icon, color: colors.text }];
+  const inputStyle = (field: string) => [
+    styles.input,
+    { borderColor: focusedField === field ? colors.tint : colors.icon + '55', color: colors.text },
+  ];
 
   return (
     <ThemedView style={styles.container}>
@@ -58,7 +62,7 @@ export default function SignUp() {
           <ThemedText type="title" style={styles.title}>Create Account</ThemedText>
 
           <TextInput
-            style={inputStyle}
+            style={inputStyle('name')}
             placeholder="Full Name"
             placeholderTextColor={colors.icon}
             autoCapitalize="words"
@@ -67,13 +71,15 @@ export default function SignUp() {
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => emailRef.current?.focus()}
+            onFocus={() => setFocusedField('name')}
+            onBlur={() => setFocusedField(null)}
             value={fullName}
             onChangeText={setFullName}
           />
 
           <TextInput
             ref={emailRef}
-            style={inputStyle}
+            style={inputStyle('email')}
             placeholder="Email"
             placeholderTextColor={colors.icon}
             autoCapitalize="none"
@@ -83,13 +89,15 @@ export default function SignUp() {
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => passwordRef.current?.focus()}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
             value={email}
             onChangeText={setEmail}
           />
 
           <TextInput
             ref={passwordRef}
-            style={inputStyle}
+            style={inputStyle('password')}
             placeholder="Password (min 8 characters)"
             placeholderTextColor={colors.icon}
             secureTextEntry
@@ -97,6 +105,8 @@ export default function SignUp() {
             textContentType="newPassword"
             returnKeyType="done"
             onSubmitEditing={handleSignUp}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
             value={password}
             onChangeText={setPassword}
           />

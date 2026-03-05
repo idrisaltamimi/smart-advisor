@@ -411,6 +411,8 @@ export default function SemesterHistoryScreen() {
                     {course.course_name}
                   </ThemedText>
                 </View>
+                <View style={styles.chipsRow}>
+                  <ThemedText style={[styles.scaleLabel, { color: colors.icon }]}>Easy</ThemedText>
                 <View style={styles.chipsContent}>
                   {[1, 2, 3, 4, 5].map(star => {
                     const isSelected = difficultyRatings[course.course_id] === star
@@ -438,6 +440,8 @@ export default function SemesterHistoryScreen() {
                       </TouchableOpacity>
                     )
                   })}
+                </View>
+                  <ThemedText style={[styles.scaleLabel, { color: colors.icon }]}>Hard</ThemedText>
                 </View>
               </View>
             ))}
@@ -870,7 +874,17 @@ const styles = StyleSheet.create({
   chipsScroll: {
     flexGrow: 0,
   },
+  chipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  scaleLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
   chipsContent: {
+    flexDirection: 'row',
     gap: 8,
     paddingRight: 4,
   },

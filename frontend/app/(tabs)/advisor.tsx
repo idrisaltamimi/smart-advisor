@@ -232,7 +232,7 @@ export default function AdvisorScreen() {
 
           {/* Course cards grouped by category */}
           {Object.entries(grouped).map(([category, courses]) => (
-            <Collapsible key={category} title={category}>
+            <Collapsible key={category} title={category} count={courses.length}>
               {courses.map((course) => (
                 <CourseCard
                   key={course.course_id}
@@ -263,7 +263,7 @@ export default function AdvisorScreen() {
               {
                 color: colors.text,
                 borderColor: colors.icon,
-                backgroundColor: "#f5f5f5"
+                backgroundColor: colors.icon + '15'
               }
             ]}
             placeholder="Add notes for Re-advise (e.g. replace with something lighter)"
