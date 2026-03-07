@@ -522,6 +522,7 @@ Rules:
 - Total credits of suggested courses MUST NOT exceed {max_credits}.
 - Do NOT suggest any course whose name contains the word "project" (case-insensitive) and has 6 credits, unless the student's total credits completed is at least 90. Identify such courses yourself from the list above.
 - Use exact course_id values from the list above.
+- STUDENT NOTES (mandatory): If student notes are provided, you MUST honour them. If the student says to avoid a course, topic, subject, or department, do NOT suggest it — even if it has high unlock priority. If the student asks for lighter workload, prefer lower-difficulty or lower-credit courses. Student notes override all other preferences except the hard credit cap.
 - UNLOCK PRIORITY (highest importance): Courses that open paths to other courses must be prioritised above all else. There are two tiers:
   1. **Unlocks Major Requirements** — tagged "(unlocks N requirement)": HIGHEST priority. These are critical bottlenecks; always prefer them over everything else.
   2. **Unlocks Major Electives only** — tagged "(unlocks N elective)": High priority, but slightly below tier 1.
