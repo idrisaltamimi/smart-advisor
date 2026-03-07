@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,13 +24,34 @@ import {
   SuggestedCourse,
   apiEnrollPlan,
   apiGeneratePlan,
-  apiGetAlternatives
+  apiGetAlternatives,
+  apiGetProgress
 } from "@/services/api"
 
 type Phase = "form" | "loading" | "results" | "success"
 
+const SEMESTER_ORDER: Record<SemesterType, number> = { Spring: 0, Summer: 1, Fall: 2 }
+
+function nextSemesterWithYear(label: string): { semester: SemesterType; year: number } {
+  const parts = label.split(" ")
+  const labelYear = parseInt(parts[parts.length - 1], 10) || new Date().getFullYear()
+  const lower = label.toLowerCase()
+  if (lower.startsWith("fall")) return { semester: "Spring", year: labelYear + 1 }
+  if (lower.startsWith("spring")) return { semester: "Fall", year: labelYear }
+  if (lower.startsWith("summer")) return { semester: "Fall", year: labelYear }
+  return { semester: "Fall", year: labelYear }
+}
+
+/** Given the currently selected semester+year, compute what year `target` falls in. */
+function yearForSemester(
+  base: SemesterType,
+  baseYear: number,
+  target: SemesterType
+): number {
+  return SEMESTER_ORDER[target] >= SEMESTER_ORDER[base] ? baseYear : baseYear + 1
+}
+
 const SUMMER_CAP = 9
-const MAX_CREDITS = 19
 
 const ALL_CREDIT_OPTIONS = [12, 15, 18, 19]
 const SUMMER_CREDIT_OPTIONS = [3, 6, 9]
@@ -42,6 +63,7 @@ export default function AdvisorScreen() {
 
   const [phase, setPhase] = useState<Phase>("form")
   const [semester, setSemester] = useState<SemesterType>("Fall")
+  const [semesterYear, setSemesterYear] = useState<number>(new Date().getFullYear())
   const [maxCredits, setMaxCredits] = useState(15)
   const [description, setDescription] = useState("")
   const [result, setResult] = useState<GenerateResponse | null>(null)
@@ -56,10 +78,25 @@ export default function AdvisorScreen() {
   const [swapLoading, setSwapLoading] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!token) return
+    apiGetProgress(token)
+      .then((progress) => {
+        const latest = progress.next_planned_semester ?? progress.active_semester
+        if (latest) {
+          const { semester: s, year } = nextSemesterWithYear(latest.semester_label)
+          setSemester(s)
+          setSemesterYear(year)
+        }
+      })
+      .catch(() => {})
+  }, [token])
+
   const creditOptions = semester === "Summer" ? SUMMER_CREDIT_OPTIONS : ALL_CREDIT_OPTIONS
 
-  function handleSemesterChange(s: SemesterType) {
+  function handleSemesterChange(s: SemesterType, year: number) {
     setSemester(s)
+    setSemesterYear(year)
     if (s === "Summer" && maxCredits > SUMMER_CAP) {
       setMaxCredits(SUMMER_CAP)
     }
@@ -110,6 +147,18 @@ export default function AdvisorScreen() {
     setExcludedCourseIds([])
     setError(null)
     setPhase("form")
+    if (token) {
+      apiGetProgress(token)
+        .then((progress) => {
+          const latest = progress.next_planned_semester ?? progress.active_semester
+          if (latest) {
+            const { semester: s, year } = nextSemesterWithYear(latest.semester_label)
+            setSemester(s)
+            setSemesterYear(year)
+          }
+        })
+        .catch(() => {})
+    }
   }
 
   function handleRemoveCourse(course: SuggestedCourse) {
@@ -263,7 +312,7 @@ export default function AdvisorScreen() {
               {
                 color: colors.text,
                 borderColor: colors.icon,
-                backgroundColor: colors.icon + '15'
+                backgroundColor: colors.icon + "15"
               }
             ]}
             placeholder="Add notes for Re-advise (e.g. replace with something lighter)"
@@ -391,28 +440,31 @@ export default function AdvisorScreen() {
           Semester
         </ThemedText>
         <View style={styles.pillRow}>
-          {(["Fall", "Spring", "Summer"] as SemesterType[]).map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[
-                styles.pill,
-                {
-                  backgroundColor: semester === s ? colors.tint : "transparent",
-                  borderColor: colors.tint
-                }
-              ]}
-              onPress={() => handleSemesterChange(s)}
-            >
-              <ThemedText
+          {(["Fall", "Spring", "Summer"] as SemesterType[]).map((s) => {
+            const y = yearForSemester(semester, semesterYear, s)
+            return (
+              <TouchableOpacity
+                key={s}
                 style={[
-                  styles.pillText,
-                  { color: semester === s ? "#fff" : colors.tint }
+                  styles.pill,
+                  {
+                    backgroundColor: semester === s ? colors.tint : "transparent",
+                    borderColor: colors.tint
+                  }
                 ]}
+                onPress={() => handleSemesterChange(s, y)}
               >
-                {s}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
+                <ThemedText
+                  style={[
+                    styles.pillText,
+                    { color: semester === s ? "#fff" : colors.tint }
+                  ]}
+                >
+                  {s} {y}
+                </ThemedText>
+              </TouchableOpacity>
+            )
+          })}
         </View>
 
         {/* Max credits */}
