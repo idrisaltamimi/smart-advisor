@@ -200,7 +200,7 @@ def build_student_context(student: models.Student, is_progress=False) -> dict:
 
 
 def build_available_courses(
-    student: models.Student, student_context: dict
+    student: models.Student, student_context: dict, is_early_semester: bool = False
 ) -> list[dict]:
     completed_course_ids = student_context["completed_course_ids"]
     completed_course_codes = student_context["completed_course_codes"]
@@ -362,17 +362,24 @@ def build_available_courses(
     #   Tier 1: unlocks ≥1 Major Elective only
     #   Tier 2: unlocks nothing
     #   Within each tier: Major Requirements > Major Electives / MAJOR-DEPT > others.
-    CATEGORY_PRIORITY = {"Major Requirements": 0, "Major Electives": 1}
+    #   Early semester: within each unlock tier, [MAJOR-DEPT] courses (not in Major
+    #   Requirements/Electives) float to the top since they are gateway courses.
+    def _category_priority(course_entry: dict) -> int:
+        cat = course_entry["requirement_category"]
+        if cat == "Major Requirements":
+            return 0
+        if is_early_semester and course_entry.get("is_major_dept"):
+            # Early gateway dept courses come right after Major Requirements
+            return 1
+        if cat == "Major Electives" or course_entry.get("is_major_dept"):
+            return 2
+        return 3
+
     available_courses.sort(
         key=lambda course_entry: (
             0 if course_entry["unlock_requirements_count"] > 0
             else (1 if course_entry["unlock_count"] > 0 else 2),
-            CATEGORY_PRIORITY.get(
-                course_entry["requirement_category"],
-                (
-                    1 if course_entry.get("is_major_dept") else 3
-                ),  # same-dept = Major Elective tier
-            ),
+            _category_priority(course_entry),
             -course_entry["unlock_count"],
         )
     )
@@ -499,7 +506,11 @@ def build_system_prompt(
     early_semester_rule = (
         "\n- EARLY SEMESTER RULE: This student is in their first 2 semesters. "
         "Do NOT suggest any 300-level or 400-level course (course codes whose first digit is 3 or 4). "
-        "Only 100-level and 200-level courses are allowed."
+        "Only 100-level and 200-level courses are allowed. "
+        "Within each unlock tier, courses tagged [MAJOR-DEPT] that are NOT listed under 'Major Requirements' or 'Major Electives' "
+        "are the highest priority — they are early gateway courses with the major's department code and must be taken as soon as possible. "
+        "Unlock priority still governs tier order: a course that unlocks Major Requirements comes before one that does not, "
+        "but among courses in the same unlock tier, always prefer [MAJOR-DEPT] courses first."
         if is_early_semester
         else ""
     )
@@ -564,7 +575,11 @@ def generate_plan(
         max_credits = server_cap
 
     student_context = build_student_context(student)
-    available_courses = build_available_courses(student, student_context)
+
+    # True when the student hasn't completed 2 semesters yet
+    is_early_semester = len(student.semesters) < 2
+
+    available_courses = build_available_courses(student, student_context, is_early_semester)
 
     # Filter out courses the user has explicitly excluded
     if body.exclude_course_ids:
@@ -578,9 +593,6 @@ def generate_plan(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No available courses to suggest. You may have completed all requirements.",
         )
-
-    # True when the student hasn't completed 2 semesters yet
-    is_early_semester = len(student.semesters) < 2
 
     available_course_ids = {course["course_id"] for course in available_courses}
     system_prompt = build_system_prompt(

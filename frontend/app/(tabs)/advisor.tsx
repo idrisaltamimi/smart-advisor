@@ -30,25 +30,20 @@ import {
 
 type Phase = "form" | "loading" | "results" | "success"
 
-const SEMESTER_ORDER: Record<SemesterType, number> = { Spring: 0, Summer: 1, Fall: 2 }
-
-function nextSemesterWithYear(label: string): { semester: SemesterType; year: number } {
+function nextSemesterWithYear(label: string): { semester: SemesterType; anchorYear: number } {
   const parts = label.split(" ")
   const labelYear = parseInt(parts[parts.length - 1], 10) || new Date().getFullYear()
   const lower = label.toLowerCase()
-  if (lower.startsWith("fall")) return { semester: "Spring", year: labelYear + 1 }
-  if (lower.startsWith("spring")) return { semester: "Fall", year: labelYear }
-  if (lower.startsWith("summer")) return { semester: "Fall", year: labelYear }
-  return { semester: "Fall", year: labelYear }
+  // anchorYear = the Fall year of the target academic period
+  if (lower.startsWith("fall")) return { semester: "Spring", anchorYear: labelYear + 1 }
+  if (lower.startsWith("spring")) return { semester: "Fall", anchorYear: labelYear }
+  if (lower.startsWith("summer")) return { semester: "Fall", anchorYear: labelYear }
+  return { semester: "Fall", anchorYear: labelYear }
 }
 
-/** Given the currently selected semester+year, compute what year `target` falls in. */
-function yearForSemester(
-  base: SemesterType,
-  baseYear: number,
-  target: SemesterType
-): number {
-  return SEMESTER_ORDER[target] >= SEMESTER_ORDER[base] ? baseYear : baseYear + 1
+/** Year for a given semester within an academic period anchored at `anchorYear` (the Fall year). */
+function yearForSemester(target: SemesterType, anchorYear: number): number {
+  return target === "Fall" ? anchorYear : anchorYear + 1
 }
 
 const SUMMER_CAP = 9
@@ -63,7 +58,7 @@ export default function AdvisorScreen() {
 
   const [phase, setPhase] = useState<Phase>("form")
   const [semester, setSemester] = useState<SemesterType>("Fall")
-  const [semesterYear, setSemesterYear] = useState<number>(new Date().getFullYear())
+  const [anchorYear, setAnchorYear] = useState<number>(new Date().getFullYear())
   const [maxCredits, setMaxCredits] = useState(15)
   const [description, setDescription] = useState("")
   const [result, setResult] = useState<GenerateResponse | null>(null)
@@ -84,9 +79,9 @@ export default function AdvisorScreen() {
       .then((progress) => {
         const latest = progress.next_planned_semester ?? progress.active_semester
         if (latest) {
-          const { semester: s, year } = nextSemesterWithYear(latest.semester_label)
+          const { semester: s, anchorYear: ay } = nextSemesterWithYear(latest.semester_label)
           setSemester(s)
-          setSemesterYear(year)
+          setAnchorYear(ay)
         }
       })
       .catch(() => {})
@@ -94,9 +89,8 @@ export default function AdvisorScreen() {
 
   const creditOptions = semester === "Summer" ? SUMMER_CREDIT_OPTIONS : ALL_CREDIT_OPTIONS
 
-  function handleSemesterChange(s: SemesterType, year: number) {
+  function handleSemesterChange(s: SemesterType) {
     setSemester(s)
-    setSemesterYear(year)
     if (s === "Summer" && maxCredits > SUMMER_CAP) {
       setMaxCredits(SUMMER_CAP)
     }
@@ -152,9 +146,9 @@ export default function AdvisorScreen() {
         .then((progress) => {
           const latest = progress.next_planned_semester ?? progress.active_semester
           if (latest) {
-            const { semester: s, year } = nextSemesterWithYear(latest.semester_label)
+            const { semester: s, anchorYear: ay } = nextSemesterWithYear(latest.semester_label)
             setSemester(s)
-            setSemesterYear(year)
+            setAnchorYear(ay)
           }
         })
         .catch(() => {})
@@ -441,7 +435,7 @@ export default function AdvisorScreen() {
         </ThemedText>
         <View style={styles.pillRow}>
           {(["Fall", "Spring", "Summer"] as SemesterType[]).map((s) => {
-            const y = yearForSemester(semester, semesterYear, s)
+            const y = yearForSemester(s, anchorYear)
             return (
               <TouchableOpacity
                 key={s}
@@ -452,7 +446,7 @@ export default function AdvisorScreen() {
                     borderColor: colors.tint
                   }
                 ]}
-                onPress={() => handleSemesterChange(s, y)}
+                onPress={() => handleSemesterChange(s)}
               >
                 <ThemedText
                   style={[

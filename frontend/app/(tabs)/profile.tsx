@@ -15,10 +15,10 @@ import { ThemedView } from '@/components/themed-view'
 import { Colors } from '@/constants/theme'
 import { useAuth } from '@/context/auth-context'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { Major, apiGetMajors } from '@/services/api'
+import { Major, apiDevReset, apiGetMajors } from '@/services/api'
 
 export default function ProfileScreen() {
-  const { user, signOut, setMajor } = useAuth()
+  const { user, token, signOut, setMajor } = useAuth()
   const colorScheme = useColorScheme() ?? 'light'
   const colors = Colors[colorScheme]
 
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
   const [changeMajorVisible, setChangeMajorVisible] = useState(false)
   const [savingMajor, setSavingMajor] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   useFocusEffect(
     useCallback(() => {
@@ -56,6 +57,32 @@ export default function ProfileScreen() {
     } finally {
       setSavingMajor(false)
     }
+  }
+
+  function handleDevReset() {
+    Alert.alert(
+      '[DEV] Start Over',
+      'This will delete all semesters, enrolled courses, and reset your CGPA. Your name and major will be kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Start Over',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return
+            setResetting(true)
+            try {
+              await apiDevReset(token)
+              Alert.alert('Done', 'Student data has been reset.')
+            } catch (e: any) {
+              Alert.alert('Error', e.message ?? 'Reset failed')
+            } finally {
+              setResetting(false)
+            }
+          },
+        },
+      ]
+    )
   }
 
   function handleLogout() {
@@ -111,6 +138,21 @@ export default function ProfileScreen() {
             Change Major
           </ThemedText>
         </TouchableOpacity>
+
+        {/* Dev-only: Start Over */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[styles.devBtn, { opacity: resetting ? 0.6 : 1 }]}
+            onPress={handleDevReset}
+            disabled={resetting}
+          >
+            {resetting ? (
+              <ActivityIndicator color="#f59e0b" />
+            ) : (
+              <ThemedText style={styles.devBtnText}>Start Over</ThemedText>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Logout */}
         <TouchableOpacity
@@ -274,6 +316,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   outlineBtnText: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  devBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    borderStyle: 'dashed',
+  },
+  devBtnText: {
+    color: '#f59e0b',
     fontWeight: '700',
     fontSize: 16,
   },

@@ -74,6 +74,26 @@ def list_majors(db: Session = Depends(get_db)):
     return db.query(models.Major).all()
 
 
+@app.post("/dev/reset")
+def dev_reset(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """DEV ONLY — deletes all semester/course data and resets CGPA; keeps major and name."""
+    student = current_user.student
+    if not student:
+        return {"reset": True}
+
+    for semester in student.semesters:
+        for sc in semester.semester_courses:
+            db.delete(sc)
+        db.delete(semester)
+
+    student.cgpa = None
+    db.commit()
+    return {"reset": True}
+
+
 @app.post("/users/me/major", response_model=UserOut)
 def set_major(
     body: SetMajorRequest,

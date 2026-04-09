@@ -330,6 +330,12 @@ export interface SubmitFeedbackResponse {
   submitted_count: number
 }
 
+// ── Dev ───────────────────────────────────────────────────────────────────────
+
+export function apiDevReset(token: string): Promise<{ reset: boolean }> {
+  return request<{ reset: boolean }>('/dev/reset', { method: 'POST' }, token)
+}
+
 export function apiSubmitFeedback(
   semester_id: string,
   feedback: FeedbackItem[],
