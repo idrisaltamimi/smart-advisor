@@ -24,29 +24,28 @@ skinparam actor {
 title Smart Course Advisor – Use Case Diagram
 
 actor Student
-actor "AI Advisor" as AI
 
 rectangle "Smart Course Advisor System" {
   ' === Authentication ===
   (Register)
   (Sign In)
   (Select Major)
-  (Register) ..> (Select Major) : <<include>>
+  (Register) ...> (Select Major) : <<include>>
 
   ' === Semester Planning ===
   (Generate Semester Plan) as GenPlan
   (Modify Course Selection) as ModifyCourse
   (Enroll in Suggested Plan) as Enroll
-  ModifyCourse .> GenPlan : <<extend>>
-  Enroll .> GenPlan : <<extend>>
+  GenPlan <... ModifyCourse : <<extend>>
+  GenPlan <... Enroll : <<extend>>
 
   ' === Semester Management ===
-  (View Semester History)
-  (Manage Semester) as ManageSem
-  (Complete Semester with Grades) as Complete
+  (View All Semesters)
+  (Update Semester Status) as ManageSem
+  (Submit Semester Grades) as Complete
   (Submit Course Feedback)
-  ManageSem .> (View Semester History) : <<extend>>
-  (Submit Course Feedback) .> Complete : <<extend>>
+  (View All Semesters) <... ManageSem : <<extend>>
+  Complete <... (Submit Course Feedback) : <<extend>>
 
   ' === Progress & Profile ===
   (View Academic Dashboard)
@@ -57,13 +56,10 @@ rectangle "Smart Course Advisor System" {
 Student --> (Register)
 Student --> (Sign In)
 Student --> (GenPlan)
-Student --> (View Semester History)
+Student --> (View All Semesters)
 Student --> (Complete)
 Student --> (View Academic Dashboard)
 Student --> (Change Major)
-
-' === AI Advisor Association ===
-AI --> (GenPlan)
 
 @enduml
 ```
@@ -78,12 +74,12 @@ AI --> (GenPlan)
 | **Sign In** | Log in with credentials |
 | **Select Major** | Choose academic major during onboarding |
 | **Generate Semester Plan** | AI creates personalized course plan based on prerequisites, credits, and CGPA |
-| **Modify Course Selection** | Swap or remove courses from generated plan (extends Generate) |
-| **Enroll in Suggested Plan** | Save plan to academic record (extends Generate) |
-| **View Semester History** | See all past, current, and planned semesters |
-| **Manage Semester** | Activate or cancel a planned semester (extends View History) |
-| **Complete Semester with Grades** | Submit grades and calculate GPA |
-| **Submit Course Feedback** | Rate course difficulty after completion (extends Complete) |
+| **Modify Course Selection** | Swap or remove courses from generated plan |
+| **Enroll in Suggested Plan** | Save plan to academic record |
+| **View All Semesters** | See all past, current, and planned semesters |
+| **Update Semester Status** | Activate or cancel a planned semester |
+| **Submit Semester Grades** | Submit grades for current semester and calculate GPA |
+| **Submit Course Feedback** | Rate course difficulty after completion |
 | **View Academic Dashboard** | See CGPA, progress, and current semester |
 | **Change Major** | Update academic major |
 
@@ -91,12 +87,14 @@ AI --> (GenPlan)
 
 | Actor | Description |
 |-------|-------------|
-| **Student** | Primary user |
-| **AI Advisor** | System actor (GPT-4o) for course recommendations |
+| **Student** | Primary user who plans courses, tracks progress, and manages semesters |
 
 ## Relationships
 
-- `<<include>>`: Register always requires Select Major
-- `<<extend>>`: Modify Course Selection and Enroll optionally follow Generate Semester Plan
-- `<<extend>>`: Manage Semester optionally follows View Semester History
-- `<<extend>>`: Submit Course Feedback optionally follows Complete Semester
+| Relationship | Type | Description |
+|--------------|------|-------------|
+| Register → Select Major | include | Registration always requires major selection |
+| Modify Course Selection → Generate Semester Plan | extend | Optionally modify after generating plan |
+| Enroll in Suggested Plan → Generate Semester Plan | extend | Optionally enroll after generating plan |
+| Update Semester Status → View All Semesters | extend | Optionally activate/cancel from semester view |
+| Submit Course Feedback → Submit Semester Grades | extend | Optionally rate difficulty after submitting grades |
