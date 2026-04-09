@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Smart Advisor** is a full-stack university project with a React Native mobile frontend and a Python FastAPI backend.
+**Smart Advisor** is a full-stack university academic advising app. Students select their major, and an AI-powered advisor generates personalized semester course plans based on prerequisites, credit limits, CGPA, and requirement progress.
 
 ## Commands
 
@@ -26,31 +26,50 @@ source env/bin/activate          # macOS/Linux
 .\env\Scripts\activate           # Windows
 
 # Run the server
-python3 -m uvicorn backend.main:app --reload
+python -m uvicorn backend.main:app --reload
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Seed the database with course data
+python -m backend.data.seed
 ```
+
+**Environment variables**: Create `.env` in `/backend` with:
+- `OPENAI_API_KEY` — Required for AI course recommendations
+- `DATABASE_URL` — Optional; defaults to SQLite (`sql_app.db`)
 
 ## Architecture
 
 ### Frontend (React Native + Expo)
 
-- **Routing**: File-based via Expo Router (`app/` directory). Tabs are nested under `app/(tabs)/`.
+- **Routing**: File-based via Expo Router (`app/` directory). Auth flow in `app/(auth)/`, main tabs in `app/(tabs)/`.
+- **API Client**: `services/api.ts` — typed fetch wrapper for all backend endpoints. Auto-detects backend IP in dev mode.
 - **Theming**: `ThemedView` / `ThemedText` components wrap all UI; dark/light mode via `useColorScheme` hook and `constants/Colors.ts`.
-- **Components**: Reusable components in `components/`; `ui/` subdirectory for primitive UI elements.
-- **Hooks**: Custom hooks in `hooks/` for color scheme and theme detection.
 
 ### Backend (FastAPI + SQLAlchemy)
 
-- **Entry point**: `main.py` — FastAPI app, route definitions, and startup table creation.
-- **Database**: `database.py` sets up SQLAlchemy engine (SQLite by default; override with `DATABASE_URL` env var). Sessions are injected via `get_db()` dependency.
-- **Models**: `models.py` — SQLAlchemy ORM models (inheriting from `Base` defined in `database.py`).
-- **Schemas**: `schema.py` — Pydantic schemas for request/response validation.
-- **Auto docs**: Available at `/docs` when server is running.
+- **Entry point**: `main.py` — FastAPI app with CORS, auth routes (`/auth/*`), user routes, and advisor router.
+- **Advisor module**: `advisor.py` — AI-powered course planning. Uses GPT-4o with function calling to generate semester plans based on prerequisites, unlock priority, credit fit, and difficulty ratings.
+- **Auth**: `auth.py` — JWT-based authentication with `get_current_user` dependency.
+- **Database**: `database.py` — SQLAlchemy engine (SQLite default). Sessions via `get_db()` dependency.
+- **Models**: `models.py` — User, Student, Major, Requirement, Course, Semester, SemesterCourse, Prerequisite, CourseFeedback.
+- **Seed data**: `data/seed.py` loads `data/uon_cs_seed.json` with majors, courses, requirements, and prerequisites.
 
 ### Data Flow
 
-Frontend (React Native) ↔ Backend API (FastAPI) ↔ SQLAlchemy ORM ↔ SQLite (`sql_app.db`)
+```
+Frontend (React Native) → services/api.ts → Backend API (FastAPI) → SQLAlchemy ORM → SQLite
+                                                    ↓
+                                              OpenAI GPT-4o (for /advisor/generate)
+```
 
-The frontend and backend are not yet connected — no API client exists in the frontend.
+### Key API Endpoints
+
+- `POST /auth/register`, `POST /auth/login` — Authentication
+- `GET /majors`, `POST /users/me/major` — Major selection
+- `POST /advisor/generate` — AI generates course plan for a semester
+- `POST /advisor/enroll` — Save generated plan as a planned semester
+- `GET /advisor/semesters` — List all student semesters with courses
+- `POST /advisor/semesters/{id}/complete` — Submit grades, calculate GPA
+- `GET /advisor/progress` — Overall degree progress summary
