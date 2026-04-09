@@ -1,5 +1,7 @@
 # Smart Course Advisor – Use Case Diagram
 
+The Use Case Diagram showcases the interactions between the Student and the Smart Course Advisor System. It defines the system's functional requirements and clarifies the Student's role. The Student can authenticate, complete onboarding by selecting a major, generate personalized semester plans, view all semesters, submit grades, provide course feedback, view academic progress, and change their major.
+
 ## PlantUML Diagram
 
 ```plantuml
