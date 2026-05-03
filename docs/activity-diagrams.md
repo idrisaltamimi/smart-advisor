@@ -2,18 +2,18 @@
 
 The following activity diagrams illustrate the four core workflows of the Smart Advisor system. Together, they trace the complete student journey: entering the system, receiving AI-powered advice, acting on it, and recording outcomes. Each diagram maps directly to use cases defined in the Use Case Diagram and exercises entities from the Entity Relationship Diagram.
 
-| Diagram | Story Role | Use Cases Covered | ERD Entities Touched |
-|---------|-----------|-------------------|---------------------|
-| Registration & Onboarding | Beginning | Register, Select Major | user, student, major |
-| AI Semester Plan Generation | Climax | Generate Semester Plan | student, course, prerequisite, requirement, requirement_course, course_feedback |
-| Plan Review & Enrollment | Resolution | Modify Course Selection, Enroll in Suggested Plan | semester, semester_course, course |
-| Semester Completion | Consequence | Submit Semester Grades, Submit Course Feedback | semester, semester_course, course_feedback, student (CGPA) |
+| Diagram                  | Story Role  | Use Cases Covered                                 | ERD Entities Touched                                                            |
+| ------------------------ | ----------- | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Entry & Setup            | Beginning   | Register, Sign In, Select Major                   | user, student, major                                                            |
+| Semester Plan Generation | Climax      | Generate Semester Plan                            | student, course, prerequisite, requirement, requirement_course, course_feedback |
+| Plan Review & Enrollment | Resolution  | Modify Course Selection, Enroll in Suggested Plan | semester, semester_course, course                                               |
+| Semester Completion      | Consequence | Submit Semester Grades, Submit Course Feedback    | semester, semester_course, course_feedback, student (CGPA)                      |
 
 ---
 
-## 1. Registration & Onboarding
+## 1. Entry & Setup
 
-This diagram covers the student's entry into the system. It maps to the **Register** and **Select Major** use cases, where registration always includes major selection (the `<<include>>` relationship from the Use Case Diagram). The flow touches the `user`, `student`, and `major` entities from the ERD.
+This diagram shows how a student enters the system. It combines authentication and onboarding into a single flow — the student either signs in or registers, then selects a major if they haven't already, before reaching the Advisor Home screen.
 
 ```plantuml
 @startuml
@@ -26,52 +26,32 @@ skinparam ArrowColor #1F2D3D
 skinparam ActivityDiamondBackgroundColor #F7FBFF
 skinparam ActivityDiamondBorderColor #1F2D3D
 
-title Activity Diagram – Registration & Onboarding
+title Activity Diagram – Entry & Setup
 
 start
+:Open App;
 
-:Student opens the app;
-
-:Student taps "Register";
-
-:Student enters full name,
-email, and password;
-
-:Student submits the registration form;
-
-if (Are all fields valid?) then (yes)
-
-  if (Is email already registered?) then (yes)
-    :Display "Email already in use" error;
-    stop
-  else (no)
-    :Create user account;
-    :Generate JWT authentication token;
-
-    :Fetch list of available majors;
-
-    :Student selects a major;
-
-    :Create student profile
-    linked to the selected major;
-
-    :Redirect to Home screen;
-    stop
-  endif
-
-else (no)
-  :Display validation errors;
-  stop
+if (Is the user logged in?) then (No)
+  repeat
+    :Sign In / Sign Up;
+  repeat while (Was it successful?) is (No)
 endif
+
+if (Has the user selected a major?) then (No)
+  :Choose Major;
+endif
+
+:Go to Advisor Home;
+stop
 
 @enduml
 ```
 
 ---
 
-## 2. AI-Powered Semester Plan Generation
+## 2. Semester Plan Generation
 
-This diagram covers the system's core feature: AI-driven course planning. It maps to the **Generate Semester Plan** use case and exercises the largest number of ERD entities: `student`, `course`, `prerequisite`, `requirement`, `requirement_course`, and `course_feedback`. The flow illustrates how the system builds a rich academic context, applies business rules (credit caps, prerequisite checks, unlock priority), and delegates final course selection to GPT-4o via function calling.
+This diagram illustrates the AI-driven course planning process. The student configures their semester preferences, the system determines which courses are eligible based on academic progress and prerequisites, and the AI advisor recommends an optimal course selection within the student's credit limit.
 
 ```plantuml
 @startuml
@@ -84,86 +64,27 @@ skinparam ArrowColor #1F2D3D
 skinparam ActivityDiamondBackgroundColor #F7FBFF
 skinparam ActivityDiamondBorderColor #1F2D3D
 
-title Activity Diagram – AI Semester Plan Generation
+title Activity Diagram – Semester Plan Generation
 
-|Student|
 start
-:Select semester type
-(Fall, Spring, or Summer);
-
-:Set maximum credit limit;
-
-:Optionally add notes
-or preferences;
-
 :Tap "Generate Advice";
+:Enter semester preferences;
 
-|System|
-:Validate student profile
-and major selection;
+:Load student progress;
+:Compute credit cap;
+:Filter eligible courses;
 
-:Compute server-side credit cap
-based on CGPA and semester type;
-
-if (Requested credits > server cap?) then (yes)
-  :Adjust credit limit to server cap;
-  :Set credit adjustment warning;
-else (no)
-endif
-
-:Build student context:
-- Identify completed courses
-- Calculate requirement progress
-- Determine satisfied requirements;
-
-:Build available courses list:
-- Filter out completed courses
-- Check prerequisite satisfaction
-- Compute unlock priority counts
-- Calculate credit-fit scores
-- Retrieve average difficulty ratings;
-
-:Sort available courses by:
-1. Unlock tier (requirements > electives > none)
-2. Category priority
-3. Unlock count (descending);
-
-if (Are there available courses?) then (yes)
-
-  :Construct GPT-4o system prompt with:
-  - Student CGPA and completed credits
-  - Requirement progress breakdown
-  - Available courses with tags
-  - Planning rules and constraints;
-
-  |AI (GPT-4o)|
-  :Analyze student context
-  and available courses;
-
-  :Select optimal courses via
-  suggest_semester_plan function call;
-
-  |System|
-  :Parse AI response;
-
-  :Validate AI suggestions:
-  - Remove invalid course IDs
-  - Enforce credit cap
-  - Enforce level restrictions
-  (100/200-level only for early semesters);
-
-  :Compute semester label
-  (e.g., "Fall 2026");
-
-  |Student|
-  :View suggested course plan
-  with reasons for each course;
-  stop
-
-else (no)
-  :Display "No available courses" error;
+if (Are there eligible courses?) then (No)
+  :Show error;
   stop
 endif
+
+:Send context to AI;
+:Receive AI suggestions;
+:Validate suggestions;
+
+:Show recommended courses;
+stop
 
 @enduml
 ```
@@ -172,7 +93,7 @@ endif
 
 ## 3. Plan Review & Enrollment
 
-This diagram covers the student's interaction with the generated plan before committing to it. It maps to the **Modify Course Selection** and **Enroll in Suggested Plan** use cases (both `<<extend>>` from Generate Semester Plan in the Use Case Diagram). The flow shows the decision loop where a student can swap courses, remove courses, re-advise, or enroll — touching the `semester`, `semester_course`, and `course` entities from the ERD.
+This diagram shows how a student reviews and refines the generated plan before committing to it. The student can swap courses for alternatives, remove unwanted courses, or request a fresh set of suggestions. Once satisfied, they enroll and the semester plan is saved to their record.
 
 ```plantuml
 @startuml
@@ -185,80 +106,27 @@ skinparam ArrowColor #1F2D3D
 skinparam ActivityDiamondBackgroundColor #F7FBFF
 skinparam ActivityDiamondBorderColor #1F2D3D
 
-title Activity Diagram – Plan Review & Enrollment
 
-|Student|
 start
-:View generated semester plan;
+:View suggested plan;
 
-repeat
-
-  if (Satisfied with the plan?) then (yes)
-  else (no)
-
-    switch (Action?)
-    case (Swap)
-      :Tap "Swap" on a course;
-
-      |System|
-      :Find alternative courses in
-      the same requirement category
-      with matching credits;
-
-      :Filter out courses already
-      in the plan;
-
-      |Student|
-      :Select an alternative course;
-
-      |System|
-      :Replace the course in the plan;
-
-    case (Remove)
-      |Student|
-      :Tap "Remove" on a course;
-
-      |System|
-      :Remove the course from the plan;
-
-    case (Re-advise)
-      |Student|
-      :Optionally update notes;
-      :Tap "Re-advise";
-
-      |System|
-      :Regenerate plan with removed
-      courses excluded from suggestions;
-
-    endswitch
-
-    |Student|
-
-  endif
-
-repeat while (Continue modifying?) is (yes)
--> no;
+while (Modify plan?) is (Yes)
+  switch (Action?)
+  case (  Swap)
+    :Tap "Swap" on a course;
+    :Select replacement;
+  case (  Remove)
+    :Tap "Remove" on a course;
+  case (  Re-advise)
+    :Update notes;
+    :Tap "Re-advise";
+    :Receive new suggestions;
+  endswitch
+endwhile (No)
 
 :Tap "Enroll";
-
-|System|
-if (Semester already exists?) then (yes)
-  :Display "Semester already exists" error;
-  stop
-else (no)
-  :Validate all course IDs;
-
-  :Create new semester record;
-
-  :Create semester_course records
-  for each course (status: "planned");
-
-  |Student|
-  :View confirmation;
-  :Semester appears on
-  Home and History screens;
-  stop
-endif
+:Save semester plan;
+stop
 
 @enduml
 ```
@@ -267,7 +135,7 @@ endif
 
 ## 4. Semester Completion & Grade Submission
 
-This diagram covers the end-of-semester workflow, mapping to the **Submit Semester Grades** and **Submit Course Feedback** use cases (linked by an `<<extend>>` relationship in the Use Case Diagram). It contains the richest branching logic in the system: GPA calculation, failure detection, and conditional cancellation of future planned semesters. The flow exercises the `semester`, `semester_course`, `course_feedback`, and `student` (CGPA) entities from the ERD.
+This diagram shows the end-of-semester workflow. The student submits grades for each course, the system calculates the semester GPA and updates the cumulative GPA. If any courses are failed, the system checks whether those failures affect future planned semesters and responds accordingly. The student may also submit course difficulty feedback to improve future AI recommendations.
 
 ```plantuml
 @startuml
@@ -280,71 +148,28 @@ skinparam ArrowColor #1F2D3D
 skinparam ActivityDiamondBackgroundColor #F7FBFF
 skinparam ActivityDiamondBorderColor #1F2D3D
 
-title Activity Diagram – Semester Completion & Grade Submission
-
-|Student|
 start
-
-:Select current (enrolled) semester;
-
+:Select current semester;
 :Tap "Complete Semester";
-
-:Enter a grade for each course;
-
+:Select grade for each course;
 :Submit grades;
 
-|System|
-:Validate that grades are provided
-for all courses in the semester;
-
-:Record grades and mark all
-courses as "completed";
-
-:Calculate semester GPA using
-grade points and credit hours;
-
-:Recalculate cumulative GPA (CGPA)
-from all completed semesters;
-
-:Update student CGPA;
-
-if (Any courses graded "F"?) then (yes)
-
-  :Identify courses that require
-  the failed course(s) as prerequisites;
-
-  if (Failed courses block\nplanned semester courses?) then (yes)
-    :Cancel all planned semesters;
-    :Warn student: "Planned semesters
-    cancelled due to prerequisite conflicts.
-    Please re-plan using the Advisor.";
-  else (no)
-    :Warn student: "Failed courses
-    will be prioritized in your
-    next semester plan.";
+if (Any courses failed?) then (Yes)
+  if (Failures block future planned courses?) then (Yes)
+    :Cancel affected planned semesters;
+    :Notify student to re-plan schedule;
+  else (No)
+    :Notify student to retake the failed courses;
   endif
-
-else (no)
+else (No)
 endif
 
-:Display semester GPA
-and updated CGPA;
+:Display recorded grades and semester GPA;
 
-|Student|
-:View results;
-
-if (Submit course feedback?) then (yes)
-  :Rate each course's difficulty
-  on a scale of 1-5;
-
+if (Provide optional feedback?) then (Yes)
+  :Rate a course difficulty from 1 to 5;
   :Submit feedback;
-
-  |System|
-  :Save difficulty ratings
-  to course_feedback;
-
-  |Student|
-else (no)
+else (No)
 endif
 
 stop
@@ -358,8 +183,7 @@ stop
 
 The following use cases were intentionally excluded from the activity diagrams as they involve straightforward read or update operations without meaningful decision logic. Their behavior is fully described by the textual use case descriptions:
 
-- **Sign In** — Simple credential validation and JWT token generation.
-- **View All Semesters** — A read-only query that groups semesters by status.
-- **View Academic Dashboard** — A read-only aggregation of CGPA, progress, and active semester.
-- **Update Semester Status** — A single status transition (planned to enrolled) with prerequisite validation.
-- **Change Major** — A single-field update on the student profile.
+- **View All Semesters** — A read-only listing grouped by status.
+- **View Academic Dashboard** — A read-only summary of CGPA, progress, and active semester.
+- **Update Semester Status** — A status transition with prerequisite validation.
+- **Change Major** — A profile update that re-scopes future AI advice.
